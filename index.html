@@ -9,14 +9,20 @@
 <body>
   <div id="authModal" class="modal-overlay hidden">
     <div class="modal-box">
+      <div class="auth-top">
+        <div class="modal-logo">U</div>
+        <div>
+          <h2>Unstablesz6 Tiers</h2>
+          <p>Login or create your ID to continue</p>
+        </div>
+      </div>
+
       <div class="auth-switch">
         <button id="loginTab" class="switch-btn active" type="button">Login</button>
         <button id="signupTab" class="switch-btn" type="button">Create Account</button>
       </div>
 
       <div id="loginSection">
-        <h2>Welcome Back</h2>
-        <p>Login with your ID and password.</p>
         <form id="loginForm">
           <input type="text" id="loginIdInput" placeholder="Enter your ID" maxlength="20" required />
           <input type="password" id="loginPasswordInput" placeholder="Enter your password" required />
@@ -25,15 +31,14 @@
       </div>
 
       <div id="signupSection" class="hidden">
-        <h2>Create Account</h2>
-        <p>Choose a unique ID and password.</p>
         <form id="signupForm">
           <input type="text" id="signupIdInput" placeholder="Choose your ID" maxlength="20" required />
           <input type="password" id="signupPasswordInput" placeholder="Choose your password" required />
           <button type="submit">Create Account</button>
         </form>
-        <p class="modal-note">Editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
       </div>
+
+      <p class="modal-note">Editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
     </div>
   </div>
 
@@ -47,7 +52,7 @@
       <nav class="nav-links">
         <a href="#" class="active">Home</a>
         <a href="#">Rankings</a>
-        <a href="https://discord.gg/fdN6d2W9Br" target="_blank" rel="noopener noreferrer">Discord</a>
+        <a href="https://discord.gg/fdN6d2W9Br" target="_blank" rel="noopener noreferrer">Discords</a>
         <a href="#">API Docs</a>
       </nav>
 
@@ -60,16 +65,16 @@
 
     <main class="main">
       <section class="category-bar">
-        <button class="cat-btn active" data-category="Overall">Overall</button>
-        <button class="cat-btn" data-category="LTMs">LTMs</button>
-        <button class="cat-btn" data-category="Vanilla">Vanilla</button>
-        <button class="cat-btn" data-category="UHC">UHC</button>
-        <button class="cat-btn" data-category="Pot">Pot</button>
-        <button class="cat-btn" data-category="NethOP">NethOP</button>
-        <button class="cat-btn" data-category="SMP">SMP</button>
-        <button class="cat-btn" data-category="Sword">Sword</button>
-        <button class="cat-btn" data-category="Axe">Axe</button>
-        <button class="cat-btn" data-category="Mace">Mace</button>
+        <button class="cat-btn active" data-category="Overall">🏆 Overall</button>
+        <button class="cat-btn" data-category="LTMs">⚔ LTMs</button>
+        <button class="cat-btn" data-category="Vanilla">🛡 Vanilla</button>
+        <button class="cat-btn" data-category="UHC">❤ UHC</button>
+        <button class="cat-btn" data-category="Pot">🧪 Pot</button>
+        <button class="cat-btn" data-category="NethOP">☠ NethOP</button>
+        <button class="cat-btn" data-category="SMP">🟢 SMP</button>
+        <button class="cat-btn" data-category="Sword">🗡 Sword</button>
+        <button class="cat-btn" data-category="Axe">🔨 Axe</button>
+        <button class="cat-btn" data-category="Mace">🔩 Mace</button>
       </section>
 
       <section class="content-grid">
@@ -79,38 +84,38 @@
               <h2 id="currentCategoryTitle">Overall Rankings</h2>
               <p>Competitive player placements</p>
             </div>
-            <div class="user-pill">
-              ID: <span id="currentUserId">Not logged in</span>
-              <span id="editorMark" class="editor-mark hidden">EDITOR</span>
+
+            <div class="panel-right-info">
+              <div class="info-chip">Information</div>
+              <div class="server-chip">
+                <span>Allowed Servers</span>
+                <strong>catpvp.xyz • mcpvp.club</strong>
+              </div>
+              <div class="user-pill">
+                ID: <span id="currentUserId">Not logged in</span>
+                <span id="editorMark" class="editor-mark hidden">EDITOR</span>
+              </div>
             </div>
           </div>
 
           <div class="ranking-head">
             <div>#</div>
             <div>Player</div>
-            <div>Category</div>
-            <div>Tier</div>
+            <div>Region</div>
+            <div>Tiers</div>
           </div>
 
           <div id="rankingList" class="ranking-list"></div>
         </div>
 
         <aside class="side-panel">
-          <div class="info-card">
-            <h3>Information</h3>
-            <p><strong>Allowed Servers</strong></p>
-            <ul>
-              <li>catpvp.xyz</li>
-              <li>mcpvp.club</li>
-            </ul>
-          </div>
-
           <div id="editorPanel" class="info-card hidden">
             <h3>Add Player</h3>
             <form id="playerForm">
               <input type="text" id="playerName" placeholder="Player name" required />
+              
               <select id="playerCategory" required>
-                <option value="">Category</option>
+                <option value="">Select category</option>
                 <option value="Overall">Overall</option>
                 <option value="LTMs">LTMs</option>
                 <option value="Vanilla">Vanilla</option>
@@ -122,16 +127,16 @@
                 <option value="Axe">Axe</option>
                 <option value="Mace">Mace</option>
               </select>
-              <select id="playerTier" required>
-                <option value="">Tier</option>
-                <option value="HT1">HT1</option>
-                <option value="HT2">HT2</option>
-                <option value="HT3">HT3</option>
-                <option value="LT1">LT1</option>
-                <option value="LT2">LT2</option>
-                <option value="LT3">LT3</option>
+
+              <select id="playerRegion" required>
+                <option value="">Select region</option>
+                <option value="NA">NA</option>
+                <option value="EU">EU</option>
+                <option value="AS">AS</option>
               </select>
-              <input type="text" id="playerNote" placeholder="Subtitle / points / note" />
+
+              <input type="text" id="playerTiers" placeholder="Example: HT1, LT2, HT3" required />
+              <input type="text" id="playerNote" placeholder="Example: Combat Master (330 points)" />
               <button type="submit">Add Player</button>
             </form>
           </div>
