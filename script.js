@@ -107,17 +107,20 @@ function updateUserDisplay() {
 }
 
 function getRegionClass(region) {
-  return `region-${(region || "").toLowerCase()}`;
+  return `region-${(region || "na").toLowerCase()}`;
 }
 
 async function loadPlayers() {
-  const snapshot = await getDocs(collection(db, "players"));
-  allPlayers = snapshot.docs.map(docSnap => ({
-    firebaseId: docSnap.id,
-    ...docSnap.data()
-  }));
-
-  renderPlayers();
+  try {
+    const snapshot = await getDocs(collection(db, "players"));
+    allPlayers = snapshot.docs.map(docSnap => ({
+      firebaseId: docSnap.id,
+      ...docSnap.data()
+    }));
+    renderPlayers();
+  } catch (error) {
+    console.error("Error loading players:", error);
+  }
 }
 
 function renderPlayers() {
@@ -174,8 +177,12 @@ async function deletePlayer(firebaseId) {
     return;
   }
 
-  await deleteDoc(doc(db, "players", firebaseId));
-  await loadPlayers();
+  try {
+    await deleteDoc(doc(db, "players", firebaseId));
+    await loadPlayers();
+  } catch (error) {
+    console.error("Error deleting player:", error);
+  }
 }
 
 document.getElementById("openAuthBtn").addEventListener("click", openAuthModal);
@@ -261,16 +268,20 @@ document.getElementById("playerForm").addEventListener("submit", async function 
     return;
   }
 
-  await addDoc(collection(db, "players"), {
-    name,
-    category,
-    region,
-    tiers,
-    note
-  });
+  try {
+    await addDoc(collection(db, "players"), {
+      name,
+      category,
+      region,
+      tiers,
+      note
+    });
 
-  this.reset();
-  await loadPlayers();
+    this.reset();
+    await loadPlayers();
+  } catch (error) {
+    console.error("Error adding player:", error);
+  }
 });
 
 document.getElementById("searchInput").addEventListener("input", renderPlayers);
@@ -293,7 +304,6 @@ async function init() {
   showLoginTab();
   updateUserDisplay();
   await loadPlayers();
-
   setInterval(loadPlayers, 10000);
 }
 
