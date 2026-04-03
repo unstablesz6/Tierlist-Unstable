@@ -7,144 +7,116 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="idSetupOverlay" class="overlay hidden">
-    <div class="setup-box">
+  <div id="idModal" class="modal-overlay hidden">
+    <div class="modal-box">
       <h2>Set Your ID</h2>
-      <p>Choose one unique ID to use on this website.</p>
+      <p>Choose your unique ID to continue.</p>
       <form id="idForm">
         <input type="text" id="userIdInput" placeholder="Enter your ID" maxlength="20" required />
-        <button type="submit">Continue</button>
+        <button type="submit">Save ID</button>
       </form>
-      <p class="small-text">Allowed editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
+      <p class="modal-note">Editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
     </div>
   </div>
 
-  <a class="skip-link" href="#mainContent">Skip to content</a>
-
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-icon">U</div>
-        <div>
-          <h1>Unstablesz6</h1>
-          <p>Tiers</p>
-        </div>
+  <div class="page">
+    <header class="navbar">
+      <div class="logo-wrap">
+        <div class="logo-box">U</div>
+        <div class="logo-text">Unstablesz6 Tiers</div>
       </div>
 
-      <nav class="sidebar-nav">
-        <a href="#" class="nav-item active">Home</a>
-        <a href="#rankings" class="nav-item">Rankings</a>
-        <a href="#info" class="nav-item">Info</a>
+      <nav class="nav-links">
+        <a href="#" class="active">Home</a>
+        <a href="#">Rankings</a>
+        <a href="#">Discords</a>
+        <a href="#">API Docs</a>
       </nav>
 
-      <div class="sidebar-section">
-        <h3>Rankings</h3>
-        <div class="category-list">
-          <button class="category-btn active" data-category="Overall">Overall</button>
-          <button class="category-btn" data-category="LTMs">LTMs</button>
-          <button class="category-btn" data-category="Vanilla">Vanilla</button>
-          <button class="category-btn" data-category="UHC">UHC</button>
-          <button class="category-btn" data-category="Pot">Pot</button>
-          <button class="category-btn" data-category="NethOP">NethOP</button>
-          <button class="category-btn" data-category="SMP">SMP</button>
-          <button class="category-btn" data-category="Sword">Sword</button>
-          <button class="category-btn" data-category="Axe">Axe</button>
-          <button class="category-btn" data-category="Mace">Mace</button>
-        </div>
-      </div>
-
-      <div class="sidebar-section">
-        <h3>Your ID</h3>
-        <div class="user-box">
-          <p id="displayUserId">Not set</p>
-          <span id="editorBadge" class="editor-badge hidden">Editor</span>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main-content" id="mainContent">
-      <header class="topbar">
-        <div>
-          <h2>Rankings</h2>
-          <p id="currentCategoryText">Overall</p>
-        </div>
+      <div class="top-actions">
         <input type="text" id="searchInput" placeholder="Search player..." />
-      </header>
+        <button id="openIdBtn" class="id-btn">Set ID</button>
+      </div>
+    </header>
 
-      <section class="hero-panel">
-        <div>
-          <span class="hero-tag">Competitive Rankings</span>
-          <h3>Unstablesz6 Tier List</h3>
-          <p>
-            Browse rankings across multiple PvP categories and track player placements.
-          </p>
-        </div>
+    <main class="main">
+      <section class="category-bar">
+        <button class="cat-btn active" data-category="Overall">Overall</button>
+        <button class="cat-btn" data-category="LTMs">LTMs</button>
+        <button class="cat-btn" data-category="Vanilla">Vanilla</button>
+        <button class="cat-btn" data-category="UHC">UHC</button>
+        <button class="cat-btn" data-category="Pot">Pot</button>
+        <button class="cat-btn" data-category="NethOP">NethOP</button>
+        <button class="cat-btn" data-category="SMP">SMP</button>
+        <button class="cat-btn" data-category="Sword">Sword</button>
+        <button class="cat-btn" data-category="Axe">Axe</button>
+        <button class="cat-btn" data-category="Mace">Mace</button>
       </section>
 
-      <section id="adminPanel" class="admin-panel hidden">
-        <div class="panel-card">
-          <h3>Add Player</h3>
-          <form id="playerForm">
-            <input type="text" id="playerName" placeholder="Player name" required />
-            <select id="playerTier" required>
-              <option value="">Select Tier</option>
-              <option value="S">S Tier</option>
-              <option value="A">A Tier</option>
-              <option value="B">B Tier</option>
-              <option value="C">C Tier</option>
-            </select>
-            <select id="playerCategory" required>
-              <option value="">Select Category</option>
-              <option value="Overall">Overall</option>
-              <option value="LTMs">LTMs</option>
-              <option value="Vanilla">Vanilla</option>
-              <option value="UHC">UHC</option>
-              <option value="Pot">Pot</option>
-              <option value="NethOP">NethOP</option>
-              <option value="SMP">SMP</option>
-              <option value="Sword">Sword</option>
-              <option value="Axe">Axe</option>
-              <option value="Mace">Mace</option>
-            </select>
-            <input type="text" id="playerNote" placeholder="Short note" />
-            <button type="submit">Add Player</button>
-          </form>
-        </div>
-      </section>
+      <section class="content-grid">
+        <div class="rankings-panel">
+          <div class="panel-header">
+            <div>
+              <h2 id="currentCategoryTitle">Overall Rankings</h2>
+              <p>Competitive player placements</p>
+            </div>
+            <div class="user-pill">
+              ID: <span id="currentUserId">Not set</span>
+              <span id="editorMark" class="editor-mark hidden">EDITOR</span>
+            </div>
+          </div>
 
-      <section id="rankings" class="rankings-grid">
-        <div class="tier-column s-tier">
-          <div class="tier-header">S Tier</div>
-          <div class="tier-list" id="tier-S"></div>
-        </div>
-        <div class="tier-column a-tier">
-          <div class="tier-header">A Tier</div>
-          <div class="tier-list" id="tier-A"></div>
-        </div>
-        <div class="tier-column b-tier">
-          <div class="tier-header">B Tier</div>
-          <div class="tier-list" id="tier-B"></div>
-        </div>
-        <div class="tier-column c-tier">
-          <div class="tier-header">C Tier</div>
-          <div class="tier-list" id="tier-C"></div>
-        </div>
-      </section>
+          <div class="ranking-head">
+            <div>#</div>
+            <div>Player</div>
+            <div>Category</div>
+            <div>Tier</div>
+          </div>
 
-      <section id="info" class="info-grid">
-        <div class="panel-card">
-          <h3>Information</h3>
-          <p><strong>Allowed Servers</strong></p>
-          <ul class="server-list">
-            <li>catpvp.xyz</li>
-            <li>mcpvp.club</li>
-          </ul>
+          <div id="rankingList" class="ranking-list"></div>
         </div>
 
-        <div class="panel-card">
-          <h3>Selected Category</h3>
-          <p id="selectedCategoryBox">Overall</p>
-        </div>
+        <aside class="side-panel">
+          <div class="info-card">
+            <h3>Information</h3>
+            <p><strong>Allowed Servers</strong></p>
+            <ul>
+              <li>catpvp.xyz</li>
+              <li>mcpvp.club</li>
+            </ul>
+          </div>
+
+          <div id="editorPanel" class="info-card hidden">
+            <h3>Add Player</h3>
+            <form id="playerForm">
+              <input type="text" id="playerName" placeholder="Player name" required />
+              <select id="playerCategory" required>
+                <option value="">Category</option>
+                <option value="Overall">Overall</option>
+                <option value="LTMs">LTMs</option>
+                <option value="Vanilla">Vanilla</option>
+                <option value="UHC">UHC</option>
+                <option value="Pot">Pot</option>
+                <option value="NethOP">NethOP</option>
+                <option value="SMP">SMP</option>
+                <option value="Sword">Sword</option>
+                <option value="Axe">Axe</option>
+                <option value="Mace">Mace</option>
+              </select>
+              <select id="playerTier" required>
+                <option value="">Tier</option>
+                <option value="HT1">HT1</option>
+                <option value="HT2">HT2</option>
+                <option value="HT3">HT3</option>
+                <option value="LT1">LT1</option>
+                <option value="LT2">LT2</option>
+                <option value="LT3">LT3</option>
+              </select>
+              <input type="text" id="playerNote" placeholder="Subtitle / points / note" />
+              <button type="submit">Add Player</button>
+            </form>
+          </div>
+        </aside>
       </section>
     </main>
   </div>
