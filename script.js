@@ -6,11 +6,13 @@ const EDITOR_IDS = ["wemmbu", "kaiser"];
 let currentCategory = "Overall";
 
 const defaultPlayers = [
-  { id: 1, name: "Wemmbu", tier: "S", category: "Overall", note: "Top placement" },
-  { id: 2, name: "Kaiser", tier: "S", category: "Sword", note: "Strong sword player" },
-  { id: 3, name: "ClutchGod", tier: "A", category: "Vanilla", note: "Consistent results" },
-  { id: 4, name: "PotMaster", tier: "B", category: "Pot", note: "Good mechanics" },
-  { id: 5, name: "NetherAce", tier: "C", category: "NethOP", note: "Improving player" }
+  { id: 1, name: "Wemmbu", category: "Overall", tier: "HT1", note: "Combat Master • 330 points" },
+  { id: 2, name: "Kaiser", category: "Overall", tier: "HT1", note: "Combat Master • 311 points" },
+  { id: 3, name: "ClutchGod", category: "Vanilla", tier: "HT2", note: "Combat Ace • 290 points" },
+  { id: 4, name: "SwordMain", category: "Sword", tier: "LT1", note: "Combat Ace • 245 points" },
+  { id: 5, name: "AxeLegend", category: "Axe", tier: "LT2", note: "Rising player • 226 points" },
+  { id: 6, name: "PotMaster", category: "Pot", tier: "HT3", note: "Mechanics specialist • 201 points" },
+  { id: 7, name: "SmpZone", category: "SMP", tier: "LT3", note: "Strong consistency • 184 points" }
 ];
 
 function getUsedIds() {
@@ -30,8 +32,8 @@ function saveUserId(id) {
 }
 
 function getPlayers() {
-  const players = JSON.parse(localStorage.getItem(PLAYERS_KEY));
-  if (players) return players;
+  const saved = JSON.parse(localStorage.getItem(PLAYERS_KEY));
+  if (saved) return saved;
   localStorage.setItem(PLAYERS_KEY, JSON.stringify(defaultPlayers));
   return defaultPlayers;
 }
@@ -41,9 +43,8 @@ function savePlayers(players) {
 }
 
 function isEditor() {
-  const userId = getUserId();
-  if (!userId) return false;
-  return EDITOR_IDS.includes(userId.toLowerCase());
+  const id = getUserId();
+  return id ? EDITOR_IDS.includes(id.toLowerCase()) : false;
 }
 
 function escapeHtml(text) {
@@ -52,64 +53,69 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function setupUserUI() {
-  const overlay = document.getElementById("idSetupOverlay");
-  const displayUserId = document.getElementById("displayUserId");
-  const editorBadge = document.getElementById("editorBadge");
-  const adminPanel = document.getElementById("adminPanel");
+function openIdModal() {
+  document.getElementById("idModal").classList.remove("hidden");
+}
 
+function closeIdModal() {
+  document.getElementById("idModal").classList.add("hidden");
+}
+
+function updateUserDisplay() {
   const userId = getUserId();
+  const currentUserId = document.getElementById("currentUserId");
+  const editorMark = document.getElementById("editorMark");
+  const editorPanel = document.getElementById("editorPanel");
 
-  if (!userId) {
-    overlay.classList.remove("hidden");
-    displayUserId.textContent = "Not set";
-    editorBadge.classList.add("hidden");
-    adminPanel.classList.add("hidden");
-    return;
-  }
-
-  overlay.classList.add("hidden");
-  displayUserId.textContent = userId;
+  currentUserId.textContent = userId || "Not set";
 
   if (isEditor()) {
-    editorBadge.classList.remove("hidden");
-    adminPanel.classList.remove("hidden");
+    editorMark.classList.remove("hidden");
+    editorPanel.classList.remove("hidden");
   } else {
-    editorBadge.classList.add("hidden");
-    adminPanel.classList.add("hidden");
+    editorMark.classList.add("hidden");
+    editorPanel.classList.add("hidden");
   }
 }
 
+function getTierClass(tier) {
+  return tier.startsWith("HT") ? "tier-ht" : "tier-lt";
+}
+
 function renderPlayers() {
-  const players = getPlayers();
+  const list = document.getElementById("rankingList");
   const search = document.getElementById("searchInput").value.trim().toLowerCase();
+  const players = getPlayers()
+    .filter(player => player.category === currentCategory)
+    .filter(player => player.name.toLowerCase().includes(search));
 
-  document.getElementById("tier-S").innerHTML = "";
-  document.getElementById("tier-A").innerHTML = "";
-  document.getElementById("tier-B").innerHTML = "";
-  document.getElementById("tier-C").innerHTML = "";
+  list.innerHTML = "";
 
-  const filtered = players.filter((player) => {
-    const matchesCategory = player.category === currentCategory;
-    const matchesSearch = player.name.toLowerCase().includes(search);
-    return matchesCategory && matchesSearch;
-  });
+  if (!players.length) {
+    list.innerHTML = `<div class="empty-state">No players found in this category.</div>`;
+    return;
+  }
 
-  filtered.forEach((player) => {
-    const card = document.createElement("div");
-    card.className = "player-card";
+  players.forEach((player, index) => {
+    const row = document.createElement("div");
+    row.className = "rank-row";
 
-    card.innerHTML = `
-      <h4>${escapeHtml(player.name)}</h4>
-      <p>${escapeHtml(player.note || "No note")}</p>
-      <div class="player-meta">${escapeHtml(player.category)}</div>
-      ${isEditor() ? `<button class="delete-btn" onclick="deletePlayer(${player.id})">Delete</button>` : ""}
+    row.innerHTML = `
+      <div class="rank-pos">${index + 1}.</div>
+      <div class="player-main">
+        <h4>${escapeHtml(player.name)}</h4>
+        <p>${escapeHtml(player.note || "No details")}</p>
+        ${isEditor() ? `<button class="delete-btn" onclick="deletePlayer(${player.id})">Delete</button>` : ""}
+      </div>
+      <div>
+        <span class="category-tag">${escapeHtml(player.category)}</span>
+      </div>
+      <div>
+        <span class="tier-badge ${getTierClass(player.tier)}">${escapeHtml(player.tier)}</span>
+      </div>
     `;
 
-    const tierContainer = document.getElementById(`tier-${player.tier}`);
-    if (tierContainer) {
-      tierContainer.appendChild(card);
-    }
+    list.appendChild(row);
   });
 }
 
@@ -119,10 +125,12 @@ function deletePlayer(id) {
     return;
   }
 
-  const players = getPlayers().filter((player) => player.id !== id);
+  const players = getPlayers().filter(player => player.id !== id);
   savePlayers(players);
   renderPlayers();
 }
+
+document.getElementById("openIdBtn").addEventListener("click", openIdModal);
 
 document.getElementById("idForm").addEventListener("submit", function (e) {
   e.preventDefault();
@@ -131,31 +139,33 @@ document.getElementById("idForm").addEventListener("submit", function (e) {
   const rawId = input.value.trim();
 
   if (!rawId) {
-    alert("Enter an ID.");
+    alert("Please enter an ID.");
     return;
   }
 
-  const normalized = rawId.toLowerCase();
-  const currentSaved = getUserId();
-
-  if (currentSaved) {
-    alert("You already set your ID on this browser.");
-    return;
-  }
-
+  const current = getUserId();
   const usedIds = getUsedIds();
+  const normalized = rawId.toLowerCase();
 
-  if (usedIds.includes(normalized)) {
+  if (current && current.toLowerCase() !== normalized) {
+    alert("This browser already has an ID set.");
+    return;
+  }
+
+  if (!current && usedIds.includes(normalized)) {
     alert("That ID is already taken.");
     return;
   }
 
-  usedIds.push(normalized);
-  saveUsedIds(usedIds);
-  saveUserId(rawId);
+  if (!current) {
+    usedIds.push(normalized);
+    saveUsedIds(usedIds);
+  }
 
+  saveUserId(rawId);
   input.value = "";
-  setupUserUI();
+  closeIdModal();
+  updateUserDisplay();
   renderPlayers();
 });
 
@@ -168,12 +178,12 @@ document.getElementById("playerForm").addEventListener("submit", function (e) {
   }
 
   const name = document.getElementById("playerName").value.trim();
-  const tier = document.getElementById("playerTier").value;
   const category = document.getElementById("playerCategory").value;
+  const tier = document.getElementById("playerTier").value;
   const note = document.getElementById("playerNote").value.trim();
 
-  if (!name || !tier || !category) {
-    alert("Fill out all required fields.");
+  if (!name || !category || !tier) {
+    alert("Please fill all required fields.");
     return;
   }
 
@@ -181,37 +191,31 @@ document.getElementById("playerForm").addEventListener("submit", function (e) {
   players.push({
     id: Date.now(),
     name,
-    tier,
     category,
+    tier,
     note
   });
 
   savePlayers(players);
   document.getElementById("playerForm").reset();
-
-  if (category === currentCategory) {
-    renderPlayers();
-  } else {
-    renderPlayers();
-  }
-});
-
-document.getElementById("searchInput").addEventListener("input", function () {
   renderPlayers();
 });
 
-document.querySelectorAll(".category-btn").forEach((btn) => {
+document.getElementById("searchInput").addEventListener("input", renderPlayers);
+
+document.querySelectorAll(".cat-btn").forEach(btn => {
   btn.addEventListener("click", function () {
-    document.querySelectorAll(".category-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
     this.classList.add("active");
-
     currentCategory = this.dataset.category;
-    document.getElementById("currentCategoryText").textContent = currentCategory;
-    document.getElementById("selectedCategoryBox").textContent = currentCategory;
-
+    document.getElementById("currentCategoryTitle").textContent = `${currentCategory} Rankings`;
     renderPlayers();
   });
 });
 
-setupUserUI();
+if (!getUserId()) {
+  openIdModal();
+}
+
+updateUserDisplay();
 renderPlayers();
