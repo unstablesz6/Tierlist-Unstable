@@ -1,5 +1,5 @@
-const USER_ID_KEY = "usz6_fixed_user_id";
-const USED_IDS_KEY = "usz6_used_ids";
+const ACCOUNTS_KEY = "usz6_accounts";
+const SESSION_KEY = "usz6_session_id";
 const PLAYERS_KEY = "usz6_players";
 const EDITOR_IDS = ["wemmbu", "kaiser"];
 
@@ -10,25 +10,33 @@ const defaultPlayers = [
   { id: 2, name: "Kaiser", category: "Overall", tier: "HT1", note: "Combat Master • 311 points" },
   { id: 3, name: "ClutchGod", category: "Vanilla", tier: "HT2", note: "Combat Ace • 290 points" },
   { id: 4, name: "SwordMain", category: "Sword", tier: "LT1", note: "Combat Ace • 245 points" },
-  { id: 5, name: "AxeLegend", category: "Axe", tier: "LT2", note: "Rising player • 226 points" },
-  { id: 6, name: "PotMaster", category: "Pot", tier: "HT3", note: "Mechanics specialist • 201 points" },
-  { id: 7, name: "SmpZone", category: "SMP", tier: "LT3", note: "Strong consistency • 184 points" }
+  { id: 5, name: "AxeLegend", category: "Axe", tier: "LT2", note: "Rising player • 226 points" }
 ];
 
-function getUsedIds() {
-  return JSON.parse(localStorage.getItem(USED_IDS_KEY)) || [];
+function getAccounts() {
+  return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || [];
 }
 
-function saveUsedIds(ids) {
-  localStorage.setItem(USED_IDS_KEY, JSON.stringify(ids));
+function saveAccounts(accounts) {
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
 }
 
-function getUserId() {
-  return localStorage.getItem(USER_ID_KEY);
+function getSessionId() {
+  return localStorage.getItem(SESSION_KEY);
 }
 
-function saveUserId(id) {
-  localStorage.setItem(USER_ID_KEY, id);
+function setSessionId(id) {
+  localStorage.setItem(SESSION_KEY, id);
+}
+
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+function getCurrentAccount() {
+  const id = getSessionId();
+  if (!id) return null;
+  return getAccounts().find(a => a.id.toLowerCase() === id.toLowerCase()) || null;
 }
 
 function getPlayers() {
@@ -43,31 +51,52 @@ function savePlayers(players) {
 }
 
 function isEditor() {
-  const id = getUserId();
-  return id ? EDITOR_IDS.includes(id.toLowerCase()) : false;
+  const account = getCurrentAccount();
+  return account ? EDITOR_IDS.includes(account.id.toLowerCase()) : false;
 }
 
 function escapeHtml(text) {
   const div = document.createElement("div");
-  div.innerText = text;
+  div.innerText = text || "";
   return div.innerHTML;
 }
 
-function openIdModal() {
-  document.getElementById("idModal").classList.remove("hidden");
+function openAuthModal() {
+  document.getElementById("authModal").classList.remove("hidden");
 }
 
-function closeIdModal() {
-  document.getElementById("idModal").classList.add("hidden");
+function closeAuthModal() {
+  document.getElementById("authModal").classList.add("hidden");
+}
+
+function showLogin() {
+  document.getElementById("loginView").classList.remove("hidden");
+  document.getElementById("signupView").classList.add("hidden");
+  document.getElementById("showLoginBtn").classList.add("active");
+  document.getElementById("showSignupBtn").classList.remove("active");
+}
+
+function showSignup() {
+  document.getElementById("signupView").classList.remove("hidden");
+  document.getElementById("loginView").classList.add("hidden");
+  document.getElementById("showSignupBtn").classList.add("active");
+  document.getElementById("showLoginBtn").classList.remove("active");
 }
 
 function updateUserDisplay() {
-  const userId = getUserId();
+  const account = getCurrentAccount();
   const currentUserId = document.getElementById("currentUserId");
   const editorMark = document.getElementById("editorMark");
   const editorPanel = document.getElementById("editorPanel");
+  const logoutBtn = document.getElementById("logoutBtn");
 
-  currentUserId.textContent = userId || "Not set";
+  currentUserId.textContent = account ? account.id : "Not logged in";
+
+  if (account) {
+    logoutBtn.classList.remove("hidden");
+  } else {
+    logoutBtn.classList.add("hidden");
+  }
 
   if (isEditor()) {
     editorMark.classList.remove("hidden");
@@ -99,7 +128,6 @@ function renderPlayers() {
   players.forEach((player, index) => {
     const row = document.createElement("div");
     row.className = "rank-row";
-
     row.innerHTML = `
       <div class="rank-pos">${index + 1}.</div>
       <div class="player-main">
@@ -107,14 +135,9 @@ function renderPlayers() {
         <p>${escapeHtml(player.note || "No details")}</p>
         ${isEditor() ? `<button class="delete-btn" onclick="deletePlayer(${player.id})">Delete</button>` : ""}
       </div>
-      <div>
-        <span class="category-tag">${escapeHtml(player.category)}</span>
-      </div>
-      <div>
-        <span class="tier-badge ${getTierClass(player.tier)}">${escapeHtml(player.tier)}</span>
-      </div>
+      <div><span class="category-tag">${escapeHtml(player.category)}</span></div>
+      <div><span class="tier-badge ${getTierClass(player.tier)}">${escapeHtml(player.tier)}</span></div>
     `;
-
     list.appendChild(row);
   });
 }
@@ -124,54 +147,71 @@ function deletePlayer(id) {
     alert("You do not have permission.");
     return;
   }
-
   const players = getPlayers().filter(player => player.id !== id);
   savePlayers(players);
   renderPlayers();
 }
 
-document.getElementById("openIdBtn").addEventListener("click", openIdModal);
+document.getElementById("openAuthBtn").addEventListener("click", openAuthModal);
+document.getElementById("showLoginBtn").addEventListener("click", showLogin);
+document.getElementById("showSignupBtn").addEventListener("click", showSignup);
 
-document.getElementById("idForm").addEventListener("submit", function (e) {
+document.getElementById("logoutBtn").addEventListener("click", function () {
+  clearSession();
+  updateUserDisplay();
+  renderPlayers();
+  openAuthModal();
+});
+
+document.getElementById("loginForm").addEventListener("submit", function (e) {
   e.preventDefault();
+  const id = document.getElementById("loginIdInput").value.trim();
+  const password = document.getElementById("loginPasswordInput").value;
 
-  const input = document.getElementById("userIdInput");
-  const rawId = input.value.trim();
+  const account = getAccounts().find(
+    a => a.id.toLowerCase() === id.toLowerCase() && a.password === password
+  );
 
-  if (!rawId) {
-    alert("Please enter an ID.");
+  if (!account) {
+    alert("Invalid ID or password.");
     return;
   }
 
-  const current = getUserId();
-  const usedIds = getUsedIds();
-  const normalized = rawId.toLowerCase();
+  setSessionId(account.id);
+  this.reset();
+  closeAuthModal();
+  updateUserDisplay();
+  renderPlayers();
+});
 
-  if (current && current.toLowerCase() !== normalized) {
-    alert("This browser already has an ID set.");
+document.getElementById("signupForm").addEventListener("submit", function (e) {
+  e.preventDefault();
+  const id = document.getElementById("signupIdInput").value.trim();
+  const password = document.getElementById("signupPasswordInput").value;
+
+  if (!id || !password) {
+    alert("Fill all fields.");
     return;
   }
 
-  if (!current && usedIds.includes(normalized)) {
+  const accounts = getAccounts();
+  if (accounts.some(a => a.id.toLowerCase() === id.toLowerCase())) {
     alert("That ID is already taken.");
     return;
   }
 
-  if (!current) {
-    usedIds.push(normalized);
-    saveUsedIds(usedIds);
-  }
+  accounts.push({ id, password });
+  saveAccounts(accounts);
+  setSessionId(id);
 
-  saveUserId(rawId);
-  input.value = "";
-  closeIdModal();
+  this.reset();
+  closeAuthModal();
   updateUserDisplay();
   renderPlayers();
 });
 
 document.getElementById("playerForm").addEventListener("submit", function (e) {
   e.preventDefault();
-
   if (!isEditor()) {
     alert("You do not have permission.");
     return;
@@ -197,7 +237,7 @@ document.getElementById("playerForm").addEventListener("submit", function (e) {
   });
 
   savePlayers(players);
-  document.getElementById("playerForm").reset();
+  this.reset();
   renderPlayers();
 });
 
@@ -213,9 +253,10 @@ document.querySelectorAll(".cat-btn").forEach(btn => {
   });
 });
 
-if (!getUserId()) {
-  openIdModal();
+if (!getCurrentAccount()) {
+  openAuthModal();
 }
 
+showLogin();
 updateUserDisplay();
 renderPlayers();
