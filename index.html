@@ -7,15 +7,32 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="idModal" class="modal-overlay hidden">
+  <div id="authModal" class="modal-overlay hidden">
     <div class="modal-box">
-      <h2>Set Your ID</h2>
-      <p>Choose your unique ID to continue.</p>
-      <form id="idForm">
-        <input type="text" id="userIdInput" placeholder="Enter your ID" maxlength="20" required />
-        <button type="submit">Save ID</button>
-      </form>
-      <p class="modal-note">Editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
+      <div class="auth-tabs">
+        <button id="showLoginBtn" class="auth-tab active" type="button">Login</button>
+        <button id="showSignupBtn" class="auth-tab" type="button">Create Account</button>
+      </div>
+
+      <div id="loginView">
+        <h2>Login</h2>
+        <p>Enter your ID and password.</p>
+        <form id="loginForm">
+          <input type="text" id="loginIdInput" placeholder="Your ID" maxlength="20" required />
+          <input type="password" id="loginPasswordInput" placeholder="Password" required />
+          <button type="submit">Login</button>
+        </form>
+      </div>
+
+      <div id="signupView" class="hidden">
+        <h2>Create Account</h2>
+        <p>Create a new ID and password.</p>
+        <form id="signupForm">
+          <input type="text" id="signupIdInput" placeholder="Choose an ID" maxlength="20" required />
+          <input type="password" id="signupPasswordInput" placeholder="Choose a password" required />
+          <button type="submit">Create Account</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -29,13 +46,14 @@
       <nav class="nav-links">
         <a href="#" class="active">Home</a>
         <a href="#">Rankings</a>
-        <a href="#">Discords</a>
+        <a href="https://discord.gg/fdN6d2W9Br" target="_blank" rel="noopener noreferrer">Discord</a>
         <a href="#">API Docs</a>
       </nav>
 
       <div class="top-actions">
         <input type="text" id="searchInput" placeholder="Search player..." />
-        <button id="openIdBtn" class="id-btn">Set ID</button>
+        <button id="openAuthBtn" class="id-btn">Account</button>
+        <button id="logoutBtn" class="ghost-btn hidden">Logout</button>
       </div>
     </header>
 
@@ -61,7 +79,7 @@
               <p>Competitive player placements</p>
             </div>
             <div class="user-pill">
-              ID: <span id="currentUserId">Not set</span>
+              ID: <span id="currentUserId">Not logged in</span>
               <span id="editorMark" class="editor-mark hidden">EDITOR</span>
             </div>
           </div>
