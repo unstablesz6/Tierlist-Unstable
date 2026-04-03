@@ -1,68 +1,32 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB-dYAQnwzpsiiyDqWj3Jaow91b3LOZjF8",
+  authDomain: "unstablesz6-tiers.firebaseapp.com",
+  projectId: "unstablesz6-tiers",
+  storageBucket: "unstablesz6-tiers.firebasestorage.app",
+  messagingSenderId: "349051865909",
+  appId: "1:349051865909:web:7aecb6bf0058e722485a7c",
+  measurementId: "G-G03SM4LGXV"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 const ACCOUNTS_KEY = "usz6_accounts";
 const SESSION_KEY = "usz6_session_id";
-const PLAYERS_KEY = "usz6_players";
 const EDITOR_IDS = ["wemmbu", "kaiser"];
 
 let currentCategory = "Overall";
-
-const defaultPlayers = [
-  {
-    id: 1,
-    name: "ItzRealMe",
-    category: "Overall",
-    region: "NA",
-    tiers: ["HT3", "HT1", "HT1", "HT1", "LT2", "LT2"],
-    note: "Combat Master (330 points)"
-  },
-  {
-    id: 2,
-    name: "coldified",
-    category: "Overall",
-    region: "EU",
-    tiers: ["LT1", "LT1", "LT1", "HT2", "LT3", "HT1"],
-    note: "Combat Master (311 points)"
-  },
-  {
-    id: 3,
-    name: "Swight",
-    category: "Overall",
-    region: "NA",
-    tiers: ["HT1", "HT1", "LT2", "LT2", "HT3", "LT3"],
-    note: "Combat Master (290 points)"
-  },
-  {
-    id: 4,
-    name: "janekv",
-    category: "Overall",
-    region: "EU",
-    tiers: ["LT1", "LT2", "LT2", "HT3", "LT3", "HT4"],
-    note: "Combat Ace (245 points)"
-  },
-  {
-    id: 5,
-    name: "BlvckWlf",
-    category: "Overall",
-    region: "EU",
-    tiers: ["HT2", "LT2", "HT3", "LT3", "LT3", "HT1"],
-    note: "Combat Ace (226 points)"
-  },
-  {
-    id: 6,
-    name: "Kylaz",
-    category: "Overall",
-    region: "NA",
-    tiers: ["HT1", "LT1", "HT3", "LT3", "LT3", "HT1"],
-    note: "Combat Ace (226 points)"
-  },
-  {
-    id: 7,
-    name: "ninorc15",
-    category: "Overall",
-    region: "EU",
-    tiers: ["LT2", "LT2", "LT3", "HT3", "LT3", "LT1"],
-    note: "Combat Ace (196 points)"
-  }
-];
+let allPlayers = [];
 
 function getAccounts() {
   return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || [];
@@ -88,17 +52,6 @@ function getCurrentAccount() {
   const sessionId = getSessionId();
   if (!sessionId) return null;
   return getAccounts().find(acc => acc.id.toLowerCase() === sessionId.toLowerCase()) || null;
-}
-
-function getPlayers() {
-  const saved = JSON.parse(localStorage.getItem(PLAYERS_KEY));
-  if (saved) return saved;
-  localStorage.setItem(PLAYERS_KEY, JSON.stringify(defaultPlayers));
-  return defaultPlayers;
-}
-
-function savePlayers(players) {
-  localStorage.setItem(PLAYERS_KEY, JSON.stringify(players));
 }
 
 function isEditor() {
@@ -154,16 +107,26 @@ function updateUserDisplay() {
 }
 
 function getRegionClass(region) {
-  return `region-${region.toLowerCase()}`;
+  return `region-${(region || "").toLowerCase()}`;
+}
+
+async function loadPlayers() {
+  const snapshot = await getDocs(collection(db, "players"));
+  allPlayers = snapshot.docs.map(docSnap => ({
+    firebaseId: docSnap.id,
+    ...docSnap.data()
+  }));
+
+  renderPlayers();
 }
 
 function renderPlayers() {
   const list = document.getElementById("rankingList");
   const search = document.getElementById("searchInput").value.trim().toLowerCase();
 
-  const players = getPlayers()
+  const players = allPlayers
     .filter(player => player.category === currentCategory)
-    .filter(player => player.name.toLowerCase().includes(search));
+    .filter(player => (player.name || "").toLowerCase().includes(search));
 
   list.innerHTML = "";
 
@@ -173,6 +136,8 @@ function renderPlayers() {
   }
 
   players.forEach((player, index) => {
+    const tiers = Array.isArray(player.tiers) ? player.tiers : [];
+
     const row = document.createElement("div");
     row.className = "rank-row";
 
@@ -180,30 +145,37 @@ function renderPlayers() {
       <div class="rank-pos">${index + 1}.</div>
       <div class="player-main">
         <h4>${escapeHtml(player.name)}</h4>
-        <p>${escapeHtml(player.note)}</p>
-        ${isEditor() ? `<button class="delete-btn" onclick="deletePlayer(${player.id})">Delete</button>` : ""}
+        <p>${escapeHtml(player.note || "")}</p>
+        ${isEditor() ? `<button class="delete-btn" data-id="${player.firebaseId}">Delete</button>` : ""}
       </div>
       <div>
-        <span class="region-badge ${getRegionClass(player.region)}">${escapeHtml(player.region)}</span>
+        <span class="region-badge ${getRegionClass(player.region)}">${escapeHtml(player.region || "NA")}</span>
       </div>
       <div class="tier-tags">
-        ${player.tiers.map(tier => `<span class="tier-tag">${escapeHtml(tier)}</span>`).join("")}
+        ${tiers.map(tier => `<span class="tier-tag">${escapeHtml(tier)}</span>`).join("")}
       </div>
     `;
 
     list.appendChild(row);
   });
+
+  if (isEditor()) {
+    document.querySelectorAll(".delete-btn").forEach(btn => {
+      btn.addEventListener("click", async function () {
+        await deletePlayer(this.dataset.id);
+      });
+    });
+  }
 }
 
-function deletePlayer(id) {
+async function deletePlayer(firebaseId) {
   if (!isEditor()) {
     alert("You do not have permission.");
     return;
   }
 
-  const players = getPlayers().filter(player => player.id !== id);
-  savePlayers(players);
-  renderPlayers();
+  await deleteDoc(doc(db, "players", firebaseId));
+  await loadPlayers();
 }
 
 document.getElementById("openAuthBtn").addEventListener("click", openAuthModal);
@@ -253,7 +225,7 @@ document.getElementById("signupForm").addEventListener("submit", function (e) {
   const accounts = getAccounts();
 
   if (accounts.find(acc => acc.id.toLowerCase() === id.toLowerCase())) {
-    alert("That ID is already taken.");
+    alert("That ID is already taken on this browser.");
     return;
   }
 
@@ -267,7 +239,7 @@ document.getElementById("signupForm").addEventListener("submit", function (e) {
   renderPlayers();
 });
 
-document.getElementById("playerForm").addEventListener("submit", function (e) {
+document.getElementById("playerForm").addEventListener("submit", async function (e) {
   e.preventDefault();
 
   if (!isEditor()) {
@@ -289,9 +261,7 @@ document.getElementById("playerForm").addEventListener("submit", function (e) {
     return;
   }
 
-  const players = getPlayers();
-  players.push({
-    id: Date.now(),
+  await addDoc(collection(db, "players"), {
     name,
     category,
     region,
@@ -299,9 +269,8 @@ document.getElementById("playerForm").addEventListener("submit", function (e) {
     note
   });
 
-  savePlayers(players);
   this.reset();
-  renderPlayers();
+  await loadPlayers();
 });
 
 document.getElementById("searchInput").addEventListener("input", renderPlayers);
@@ -316,10 +285,16 @@ document.querySelectorAll(".cat-btn").forEach(btn => {
   });
 });
 
-if (!getCurrentAccount()) {
-  openAuthModal();
+async function init() {
+  if (!getCurrentAccount()) {
+    openAuthModal();
+  }
+
+  showLoginTab();
+  updateUserDisplay();
+  await loadPlayers();
+
+  setInterval(loadPlayers, 10000);
 }
 
-showLoginTab();
-updateUserDisplay();
-renderPlayers();
+init();
