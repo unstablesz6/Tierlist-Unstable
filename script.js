@@ -10,7 +10,9 @@ const defaultPlayers = [
   { id: 2, name: "Kaiser", category: "Overall", tier: "HT1", note: "Combat Master • 311 points" },
   { id: 3, name: "ClutchGod", category: "Vanilla", tier: "HT2", note: "Combat Ace • 290 points" },
   { id: 4, name: "SwordMain", category: "Sword", tier: "LT1", note: "Combat Ace • 245 points" },
-  { id: 5, name: "AxeLegend", category: "Axe", tier: "LT2", note: "Rising player • 226 points" }
+  { id: 5, name: "AxeLegend", category: "Axe", tier: "LT2", note: "Rising player • 226 points" },
+  { id: 6, name: "PotMaster", category: "Pot", tier: "HT3", note: "Mechanics specialist • 201 points" },
+  { id: 7, name: "SmpZone", category: "SMP", tier: "LT3", note: "Strong consistency • 184 points" }
 ];
 
 function getAccounts() {
@@ -34,9 +36,9 @@ function clearSession() {
 }
 
 function getCurrentAccount() {
-  const id = getSessionId();
-  if (!id) return null;
-  return getAccounts().find(a => a.id.toLowerCase() === id.toLowerCase()) || null;
+  const sessionId = getSessionId();
+  if (!sessionId) return null;
+  return getAccounts().find(account => account.id.toLowerCase() === sessionId.toLowerCase()) || null;
 }
 
 function getPlayers() {
@@ -52,7 +54,8 @@ function savePlayers(players) {
 
 function isEditor() {
   const account = getCurrentAccount();
-  return account ? EDITOR_IDS.includes(account.id.toLowerCase()) : false;
+  if (!account) return false;
+  return EDITOR_IDS.includes(account.id.toLowerCase());
 }
 
 function escapeHtml(text) {
@@ -69,18 +72,18 @@ function closeAuthModal() {
   document.getElementById("authModal").classList.add("hidden");
 }
 
-function showLogin() {
-  document.getElementById("loginView").classList.remove("hidden");
-  document.getElementById("signupView").classList.add("hidden");
-  document.getElementById("showLoginBtn").classList.add("active");
-  document.getElementById("showSignupBtn").classList.remove("active");
+function showLoginTab() {
+  document.getElementById("loginSection").classList.remove("hidden");
+  document.getElementById("signupSection").classList.add("hidden");
+  document.getElementById("loginTab").classList.add("active");
+  document.getElementById("signupTab").classList.remove("active");
 }
 
-function showSignup() {
-  document.getElementById("signupView").classList.remove("hidden");
-  document.getElementById("loginView").classList.add("hidden");
-  document.getElementById("showSignupBtn").classList.add("active");
-  document.getElementById("showLoginBtn").classList.remove("active");
+function showSignupTab() {
+  document.getElementById("signupSection").classList.remove("hidden");
+  document.getElementById("loginSection").classList.add("hidden");
+  document.getElementById("signupTab").classList.add("active");
+  document.getElementById("loginTab").classList.remove("active");
 }
 
 function updateUserDisplay() {
@@ -114,6 +117,7 @@ function getTierClass(tier) {
 function renderPlayers() {
   const list = document.getElementById("rankingList");
   const search = document.getElementById("searchInput").value.trim().toLowerCase();
+
   const players = getPlayers()
     .filter(player => player.category === currentCategory)
     .filter(player => player.name.toLowerCase().includes(search));
@@ -128,6 +132,7 @@ function renderPlayers() {
   players.forEach((player, index) => {
     const row = document.createElement("div");
     row.className = "rank-row";
+
     row.innerHTML = `
       <div class="rank-pos">${index + 1}.</div>
       <div class="player-main">
@@ -135,9 +140,14 @@ function renderPlayers() {
         <p>${escapeHtml(player.note || "No details")}</p>
         ${isEditor() ? `<button class="delete-btn" onclick="deletePlayer(${player.id})">Delete</button>` : ""}
       </div>
-      <div><span class="category-tag">${escapeHtml(player.category)}</span></div>
-      <div><span class="tier-badge ${getTierClass(player.tier)}">${escapeHtml(player.tier)}</span></div>
+      <div>
+        <span class="category-tag">${escapeHtml(player.category)}</span>
+      </div>
+      <div>
+        <span class="tier-badge ${getTierClass(player.tier)}">${escapeHtml(player.tier)}</span>
+      </div>
     `;
+
     list.appendChild(row);
   });
 }
@@ -147,14 +157,15 @@ function deletePlayer(id) {
     alert("You do not have permission.");
     return;
   }
+
   const players = getPlayers().filter(player => player.id !== id);
   savePlayers(players);
   renderPlayers();
 }
 
 document.getElementById("openAuthBtn").addEventListener("click", openAuthModal);
-document.getElementById("showLoginBtn").addEventListener("click", showLogin);
-document.getElementById("showSignupBtn").addEventListener("click", showSignup);
+document.getElementById("loginTab").addEventListener("click", showLoginTab);
+document.getElementById("signupTab").addEventListener("click", showSignupTab);
 
 document.getElementById("logoutBtn").addEventListener("click", function () {
   clearSession();
@@ -165,11 +176,12 @@ document.getElementById("logoutBtn").addEventListener("click", function () {
 
 document.getElementById("loginForm").addEventListener("submit", function (e) {
   e.preventDefault();
+
   const id = document.getElementById("loginIdInput").value.trim();
   const password = document.getElementById("loginPasswordInput").value;
 
-  const account = getAccounts().find(
-    a => a.id.toLowerCase() === id.toLowerCase() && a.password === password
+  const account = getAccounts().find(acc =>
+    acc.id.toLowerCase() === id.toLowerCase() && acc.password === password
   );
 
   if (!account) {
@@ -186,21 +198,24 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
 
 document.getElementById("signupForm").addEventListener("submit", function (e) {
   e.preventDefault();
+
   const id = document.getElementById("signupIdInput").value.trim();
   const password = document.getElementById("signupPasswordInput").value;
 
   if (!id || !password) {
-    alert("Fill all fields.");
+    alert("Please fill all fields.");
     return;
   }
 
   const accounts = getAccounts();
-  if (accounts.some(a => a.id.toLowerCase() === id.toLowerCase())) {
+
+  if (accounts.find(acc => acc.id.toLowerCase() === id.toLowerCase())) {
     alert("That ID is already taken.");
     return;
   }
 
-  accounts.push({ id, password });
+  const newAccount = { id, password };
+  accounts.push(newAccount);
   saveAccounts(accounts);
   setSessionId(id);
 
@@ -212,6 +227,7 @@ document.getElementById("signupForm").addEventListener("submit", function (e) {
 
 document.getElementById("playerForm").addEventListener("submit", function (e) {
   e.preventDefault();
+
   if (!isEditor()) {
     alert("You do not have permission.");
     return;
@@ -257,6 +273,6 @@ if (!getCurrentAccount()) {
   openAuthModal();
 }
 
-showLogin();
+showLoginTab();
 updateUserDisplay();
 renderPlayers();
