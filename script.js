@@ -6,13 +6,62 @@ const EDITOR_IDS = ["wemmbu", "kaiser"];
 let currentCategory = "Overall";
 
 const defaultPlayers = [
-  { id: 1, name: "Wemmbu", category: "Overall", tier: "HT1", note: "Combat Master • 330 points" },
-  { id: 2, name: "Kaiser", category: "Overall", tier: "HT1", note: "Combat Master • 311 points" },
-  { id: 3, name: "ClutchGod", category: "Vanilla", tier: "HT2", note: "Combat Ace • 290 points" },
-  { id: 4, name: "SwordMain", category: "Sword", tier: "LT1", note: "Combat Ace • 245 points" },
-  { id: 5, name: "AxeLegend", category: "Axe", tier: "LT2", note: "Rising player • 226 points" },
-  { id: 6, name: "PotMaster", category: "Pot", tier: "HT3", note: "Mechanics specialist • 201 points" },
-  { id: 7, name: "SmpZone", category: "SMP", tier: "LT3", note: "Strong consistency • 184 points" }
+  {
+    id: 1,
+    name: "ItzRealMe",
+    category: "Overall",
+    region: "NA",
+    tiers: ["HT3", "HT1", "HT1", "HT1", "LT2", "LT2"],
+    note: "Combat Master (330 points)"
+  },
+  {
+    id: 2,
+    name: "coldified",
+    category: "Overall",
+    region: "EU",
+    tiers: ["LT1", "LT1", "LT1", "HT2", "LT3", "HT1"],
+    note: "Combat Master (311 points)"
+  },
+  {
+    id: 3,
+    name: "Swight",
+    category: "Overall",
+    region: "NA",
+    tiers: ["HT1", "HT1", "LT2", "LT2", "HT3", "LT3"],
+    note: "Combat Master (290 points)"
+  },
+  {
+    id: 4,
+    name: "janekv",
+    category: "Overall",
+    region: "EU",
+    tiers: ["LT1", "LT2", "LT2", "HT3", "LT3", "HT4"],
+    note: "Combat Ace (245 points)"
+  },
+  {
+    id: 5,
+    name: "BlvckWlf",
+    category: "Overall",
+    region: "EU",
+    tiers: ["HT2", "LT2", "HT3", "LT3", "LT3", "HT1"],
+    note: "Combat Ace (226 points)"
+  },
+  {
+    id: 6,
+    name: "Kylaz",
+    category: "Overall",
+    region: "NA",
+    tiers: ["HT1", "LT1", "HT3", "LT3", "LT3", "HT1"],
+    note: "Combat Ace (226 points)"
+  },
+  {
+    id: 7,
+    name: "ninorc15",
+    category: "Overall",
+    region: "EU",
+    tiers: ["LT2", "LT2", "LT3", "HT3", "LT3", "LT1"],
+    note: "Combat Ace (196 points)"
+  }
 ];
 
 function getAccounts() {
@@ -38,7 +87,7 @@ function clearSession() {
 function getCurrentAccount() {
   const sessionId = getSessionId();
   if (!sessionId) return null;
-  return getAccounts().find(account => account.id.toLowerCase() === sessionId.toLowerCase()) || null;
+  return getAccounts().find(acc => acc.id.toLowerCase() === sessionId.toLowerCase()) || null;
 }
 
 function getPlayers() {
@@ -54,8 +103,7 @@ function savePlayers(players) {
 
 function isEditor() {
   const account = getCurrentAccount();
-  if (!account) return false;
-  return EDITOR_IDS.includes(account.id.toLowerCase());
+  return account ? EDITOR_IDS.includes(account.id.toLowerCase()) : false;
 }
 
 function escapeHtml(text) {
@@ -88,30 +136,25 @@ function showSignupTab() {
 
 function updateUserDisplay() {
   const account = getCurrentAccount();
-  const currentUserId = document.getElementById("currentUserId");
-  const editorMark = document.getElementById("editorMark");
-  const editorPanel = document.getElementById("editorPanel");
-  const logoutBtn = document.getElementById("logoutBtn");
-
-  currentUserId.textContent = account ? account.id : "Not logged in";
+  document.getElementById("currentUserId").textContent = account ? account.id : "Not logged in";
 
   if (account) {
-    logoutBtn.classList.remove("hidden");
+    document.getElementById("logoutBtn").classList.remove("hidden");
   } else {
-    logoutBtn.classList.add("hidden");
+    document.getElementById("logoutBtn").classList.add("hidden");
   }
 
   if (isEditor()) {
-    editorMark.classList.remove("hidden");
-    editorPanel.classList.remove("hidden");
+    document.getElementById("editorMark").classList.remove("hidden");
+    document.getElementById("editorPanel").classList.remove("hidden");
   } else {
-    editorMark.classList.add("hidden");
-    editorPanel.classList.add("hidden");
+    document.getElementById("editorMark").classList.add("hidden");
+    document.getElementById("editorPanel").classList.add("hidden");
   }
 }
 
-function getTierClass(tier) {
-  return tier.startsWith("HT") ? "tier-ht" : "tier-lt";
+function getRegionClass(region) {
+  return `region-${region.toLowerCase()}`;
 }
 
 function renderPlayers() {
@@ -137,14 +180,14 @@ function renderPlayers() {
       <div class="rank-pos">${index + 1}.</div>
       <div class="player-main">
         <h4>${escapeHtml(player.name)}</h4>
-        <p>${escapeHtml(player.note || "No details")}</p>
+        <p>${escapeHtml(player.note)}</p>
         ${isEditor() ? `<button class="delete-btn" onclick="deletePlayer(${player.id})">Delete</button>` : ""}
       </div>
       <div>
-        <span class="category-tag">${escapeHtml(player.category)}</span>
+        <span class="region-badge ${getRegionClass(player.region)}">${escapeHtml(player.region)}</span>
       </div>
-      <div>
-        <span class="tier-badge ${getTierClass(player.tier)}">${escapeHtml(player.tier)}</span>
+      <div class="tier-tags">
+        ${player.tiers.map(tier => `<span class="tier-tag">${escapeHtml(tier)}</span>`).join("")}
       </div>
     `;
 
@@ -214,8 +257,7 @@ document.getElementById("signupForm").addEventListener("submit", function (e) {
     return;
   }
 
-  const newAccount = { id, password };
-  accounts.push(newAccount);
+  accounts.push({ id, password });
   saveAccounts(accounts);
   setSessionId(id);
 
@@ -235,10 +277,14 @@ document.getElementById("playerForm").addEventListener("submit", function (e) {
 
   const name = document.getElementById("playerName").value.trim();
   const category = document.getElementById("playerCategory").value;
-  const tier = document.getElementById("playerTier").value;
+  const region = document.getElementById("playerRegion").value;
+  const tiers = document.getElementById("playerTiers").value
+    .split(",")
+    .map(t => t.trim())
+    .filter(Boolean);
   const note = document.getElementById("playerNote").value.trim();
 
-  if (!name || !category || !tier) {
+  if (!name || !category || !region || !tiers.length) {
     alert("Please fill all required fields.");
     return;
   }
@@ -248,7 +294,8 @@ document.getElementById("playerForm").addEventListener("submit", function (e) {
     id: Date.now(),
     name,
     category,
-    tier,
+    region,
+    tiers,
     note
   });
 
