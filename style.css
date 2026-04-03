@@ -1,10 +1,10 @@
-.auth-tabs {
+.auth-switch {
   display: flex;
   gap: 10px;
   margin-bottom: 18px;
 }
 
-.auth-tab {
+.switch-btn {
   flex: 1;
   padding: 12px 14px;
   border-radius: 12px;
@@ -13,11 +13,12 @@
   color: #9fb1d6;
   cursor: pointer;
   font-weight: 700;
+  transition: 0.2s ease;
 }
 
-.auth-tab.active {
+.switch-btn.active {
   color: white;
-  background: linear-gradient(135deg, #7c5cff, #4da3ff);
+  background: linear-gradient(135deg, var(--accent-2), var(--accent));
   border: none;
 }
 
@@ -25,4 +26,13 @@
   background: #0f1624;
   color: white;
   border: 1px solid rgba(255,255,255,0.08);
+}
+
+.ghost-btn:hover {
+  transform: translateY(-2px);
+}
+
+.modal-note {
+  font-size: 13px;
+  color: var(--muted);
 }
