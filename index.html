@@ -7,104 +7,147 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="logo">U</div>
-      <div>
-        <h1>Unstablesz6 Tiers</h1>
-        <p>Competitive Tier Rankings</p>
-      </div>
+  <div id="idSetupOverlay" class="overlay hidden">
+    <div class="setup-box">
+      <h2>Set Your ID</h2>
+      <p>Choose one unique ID to use on this website.</p>
+      <form id="idForm">
+        <input type="text" id="userIdInput" placeholder="Enter your ID" maxlength="20" required />
+        <button type="submit">Continue</button>
+      </form>
+      <p class="small-text">Allowed editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
     </div>
+  </div>
 
-    <nav class="nav">
-      <a href="#tiers">Tiers</a>
-      <a href="#auth">Account</a>
-    </nav>
-  </header>
+  <a class="skip-link" href="#mainContent">Skip to content</a>
 
-  <main class="container">
-    <section class="hero">
-      <div class="hero-text">
-        <span class="badge">Community Rankings</span>
-        <h2>Track players across custom tiers</h2>
-        <p>
-          A clean competitive ranking site inspired by tier-list platforms,
-          built for GitHub Pages only.
-        </p>
-      </div>
-    </section>
-
-    <section id="auth" class="panel auth-panel">
-      <div class="auth-grid">
-        <div class="card">
-          <h3>Sign Up</h3>
-          <form id="signupForm">
-            <input type="text" id="signupUsername" placeholder="Username" required />
-            <input type="password" id="signupPassword" placeholder="Password" required />
-            <button type="submit">Create Account</button>
-          </form>
-        </div>
-
-        <div class="card">
-          <h3>Login</h3>
-          <form id="loginForm">
-            <input type="text" id="loginUsername" placeholder="Username" required />
-            <input type="password" id="loginPassword" placeholder="Password" required />
-            <button type="submit">Login</button>
-          </form>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">U</div>
+        <div>
+          <h1>Unstablesz6</h1>
+          <p>Tiers</p>
         </div>
       </div>
 
-      <div class="card account-card" id="accountCard">
-        <h3>Account</h3>
-        <p><strong>Status:</strong> <span id="accountStatus">Not logged in</span></p>
-        <p><strong>Username:</strong> <span id="accountUsername">-</span></p>
-        <p><strong>User ID:</strong> <span id="accountUserId">-</span></p>
-        <p><strong>Can Edit:</strong> <span id="accountCanEdit">No</span></p>
-        <button id="logoutBtn" class="secondary">Logout</button>
-      </div>
-    </section>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active">Home</a>
+        <a href="#rankings" class="nav-item">Rankings</a>
+        <a href="#info" class="nav-item">Info</a>
+      </nav>
 
-    <section id="adminPanel" class="panel hidden">
-      <div class="card">
-        <h3>Add Player</h3>
-        <form id="playerForm">
-          <input type="text" id="playerName" placeholder="Player name" required />
-          <select id="playerTier" required>
-            <option value="">Select Tier</option>
-            <option value="S">S Tier</option>
-            <option value="A">A Tier</option>
-            <option value="B">B Tier</option>
-            <option value="C">C Tier</option>
-          </select>
-          <input type="text" id="playerNote" placeholder="Short note (optional)" />
-          <button type="submit">Add Player</button>
-        </form>
-      </div>
-    </section>
-
-    <section id="tiers" class="tiers-wrap">
-      <div class="tier-column s-tier">
-        <div class="tier-header">S Tier</div>
-        <div class="tier-list" id="tier-S"></div>
+      <div class="sidebar-section">
+        <h3>Rankings</h3>
+        <div class="category-list">
+          <button class="category-btn active" data-category="Overall">Overall</button>
+          <button class="category-btn" data-category="LTMs">LTMs</button>
+          <button class="category-btn" data-category="Vanilla">Vanilla</button>
+          <button class="category-btn" data-category="UHC">UHC</button>
+          <button class="category-btn" data-category="Pot">Pot</button>
+          <button class="category-btn" data-category="NethOP">NethOP</button>
+          <button class="category-btn" data-category="SMP">SMP</button>
+          <button class="category-btn" data-category="Sword">Sword</button>
+          <button class="category-btn" data-category="Axe">Axe</button>
+          <button class="category-btn" data-category="Mace">Mace</button>
+        </div>
       </div>
 
-      <div class="tier-column a-tier">
-        <div class="tier-header">A Tier</div>
-        <div class="tier-list" id="tier-A"></div>
+      <div class="sidebar-section">
+        <h3>Your ID</h3>
+        <div class="user-box">
+          <p id="displayUserId">Not set</p>
+          <span id="editorBadge" class="editor-badge hidden">Editor</span>
+        </div>
       </div>
+    </aside>
 
-      <div class="tier-column b-tier">
-        <div class="tier-header">B Tier</div>
-        <div class="tier-list" id="tier-B"></div>
-      </div>
+    <main class="main-content" id="mainContent">
+      <header class="topbar">
+        <div>
+          <h2>Rankings</h2>
+          <p id="currentCategoryText">Overall</p>
+        </div>
+        <input type="text" id="searchInput" placeholder="Search player..." />
+      </header>
 
-      <div class="tier-column c-tier">
-        <div class="tier-header">C Tier</div>
-        <div class="tier-list" id="tier-C"></div>
-      </div>
-    </section>
-  </main>
+      <section class="hero-panel">
+        <div>
+          <span class="hero-tag">Competitive Rankings</span>
+          <h3>Unstablesz6 Tier List</h3>
+          <p>
+            Browse rankings across multiple PvP categories and track player placements.
+          </p>
+        </div>
+      </section>
+
+      <section id="adminPanel" class="admin-panel hidden">
+        <div class="panel-card">
+          <h3>Add Player</h3>
+          <form id="playerForm">
+            <input type="text" id="playerName" placeholder="Player name" required />
+            <select id="playerTier" required>
+              <option value="">Select Tier</option>
+              <option value="S">S Tier</option>
+              <option value="A">A Tier</option>
+              <option value="B">B Tier</option>
+              <option value="C">C Tier</option>
+            </select>
+            <select id="playerCategory" required>
+              <option value="">Select Category</option>
+              <option value="Overall">Overall</option>
+              <option value="LTMs">LTMs</option>
+              <option value="Vanilla">Vanilla</option>
+              <option value="UHC">UHC</option>
+              <option value="Pot">Pot</option>
+              <option value="NethOP">NethOP</option>
+              <option value="SMP">SMP</option>
+              <option value="Sword">Sword</option>
+              <option value="Axe">Axe</option>
+              <option value="Mace">Mace</option>
+            </select>
+            <input type="text" id="playerNote" placeholder="Short note" />
+            <button type="submit">Add Player</button>
+          </form>
+        </div>
+      </section>
+
+      <section id="rankings" class="rankings-grid">
+        <div class="tier-column s-tier">
+          <div class="tier-header">S Tier</div>
+          <div class="tier-list" id="tier-S"></div>
+        </div>
+        <div class="tier-column a-tier">
+          <div class="tier-header">A Tier</div>
+          <div class="tier-list" id="tier-A"></div>
+        </div>
+        <div class="tier-column b-tier">
+          <div class="tier-header">B Tier</div>
+          <div class="tier-list" id="tier-B"></div>
+        </div>
+        <div class="tier-column c-tier">
+          <div class="tier-header">C Tier</div>
+          <div class="tier-list" id="tier-C"></div>
+        </div>
+      </section>
+
+      <section id="info" class="info-grid">
+        <div class="panel-card">
+          <h3>Information</h3>
+          <p><strong>Allowed Servers</strong></p>
+          <ul class="server-list">
+            <li>catpvp.xyz</li>
+            <li>mcpvp.club</li>
+          </ul>
+        </div>
+
+        <div class="panel-card">
+          <h3>Selected Category</h3>
+          <p id="selectedCategoryBox">Overall</p>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <script src="script.js"></script>
 </body>
