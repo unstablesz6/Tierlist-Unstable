@@ -9,29 +9,30 @@
 <body>
   <div id="authModal" class="modal-overlay hidden">
     <div class="modal-box">
-      <div class="auth-tabs">
-        <button id="showLoginBtn" class="auth-tab active" type="button">Login</button>
-        <button id="showSignupBtn" class="auth-tab" type="button">Create Account</button>
+      <div class="auth-switch">
+        <button id="loginTab" class="switch-btn active" type="button">Login</button>
+        <button id="signupTab" class="switch-btn" type="button">Create Account</button>
       </div>
 
-      <div id="loginView">
-        <h2>Login</h2>
-        <p>Enter your ID and password.</p>
+      <div id="loginSection">
+        <h2>Welcome Back</h2>
+        <p>Login with your ID and password.</p>
         <form id="loginForm">
-          <input type="text" id="loginIdInput" placeholder="Your ID" maxlength="20" required />
-          <input type="password" id="loginPasswordInput" placeholder="Password" required />
+          <input type="text" id="loginIdInput" placeholder="Enter your ID" maxlength="20" required />
+          <input type="password" id="loginPasswordInput" placeholder="Enter your password" required />
           <button type="submit">Login</button>
         </form>
       </div>
 
-      <div id="signupView" class="hidden">
+      <div id="signupSection" class="hidden">
         <h2>Create Account</h2>
-        <p>Create a new ID and password.</p>
+        <p>Choose a unique ID and password.</p>
         <form id="signupForm">
-          <input type="text" id="signupIdInput" placeholder="Choose an ID" maxlength="20" required />
-          <input type="password" id="signupPasswordInput" placeholder="Choose a password" required />
+          <input type="text" id="signupIdInput" placeholder="Choose your ID" maxlength="20" required />
+          <input type="password" id="signupPasswordInput" placeholder="Choose your password" required />
           <button type="submit">Create Account</button>
         </form>
+        <p class="modal-note">Editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
       </div>
     </div>
   </div>
