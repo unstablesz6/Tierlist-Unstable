@@ -1,11 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import {
-  getFirestore,
-  collection,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  doc
+  getFirestore, collection, getDocs, addDoc, deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -28,58 +23,69 @@ const EDITOR_IDS = ["wemmbu", "kaiser"];
 let currentCategory = "Overall";
 let allPlayers = [];
 
-function getAccounts() {
-  return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || [];
-}
-
-function saveAccounts(accounts) {
-  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
-}
-
-function getSessionId() {
-  return localStorage.getItem(SESSION_KEY);
-}
-
-function setSessionId(id) {
-  localStorage.setItem(SESSION_KEY, id);
-}
-
-function clearSession() {
-  localStorage.removeItem(SESSION_KEY);
-}
+// --- Helper Functions ---
+function getAccounts() { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || []; }
+function saveAccounts(accounts) { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts)); }
+function getSessionId() { return localStorage.getItem(SESSION_KEY); }
+function setSessionId(id) { localStorage.setItem(SESSION_KEY, id); }
+function clearSession() { localStorage.removeItem(SESSION_KEY); }
 
 function getCurrentAccount() {
-  const sessionId = getSessionId();
-  if (!sessionId) return null;
-  return getAccounts().find(acc => acc.id.toLowerCase() === sessionId.toLowerCase()) || null;
+  const id = getSessionId();
+  if (!id) return null;
+  return getAccounts().find(a => a.id.toLowerCase() === id.toLowerCase()) || null;
 }
 
 function isEditor() {
-  const account = getCurrentAccount();
-  return account ? EDITOR_IDS.includes(account.id.toLowerCase()) : false;
+  const acc = getCurrentAccount();
+  return acc ? EDITOR_IDS.includes(acc.id.toLowerCase()) : false;
 }
 
-function escapeHtml(text) {
+function escapeHtml(str) {
   const div = document.createElement("div");
-  div.innerText = text || "";
+  div.innerText = str || "";
   return div.innerHTML;
 }
 
-function openAuthModal() {
-  document.getElementById("authModal").classList.remove("hidden");
+// --- Skin & Tier Logic ---
+
+function getPlayerSkin(username) {
+  return `https://minotar.net/helm/${username}/150.png`;
 }
 
-function closeAuthModal() {
-  document.getElementById("authModal").classList.add("hidden");
+const tierScores = {
+  "HT1": 100, "HT2": 90, "HT3": 80,
+  "LT1": 70,  "LT2": 60, "LT3": 50,
+  "LT4": 40,  "LT5": 30,
+  "-": 0
+};
+
+function getBestTier(tierArray) {
+  if (!Array.isArray(tierArray) || tierArray.length === 0) return { score: 0, tag: "-" };
+  
+  let bestScore = 0;
+  let bestTag = "-";
+  
+  tierArray.forEach(t => {
+    const score = tierScores[t] || 0;
+    if (score > bestScore) {
+      bestScore = score;
+      bestTag = t;
+    }
+  });
+  
+  return { score: bestScore, tag: bestTag };
 }
 
+// --- Auth UI ---
+function openAuth() { document.getElementById("authModal").classList.remove("hidden"); }
+function closeAuth() { document.getElementById("authModal").classList.add("hidden"); }
 function showLoginTab() {
   document.getElementById("loginSection").classList.remove("hidden");
   document.getElementById("signupSection").classList.add("hidden");
   document.getElementById("loginTab").classList.add("active");
   document.getElementById("signupTab").classList.remove("active");
 }
-
 function showSignupTab() {
   document.getElementById("signupSection").classList.remove("hidden");
   document.getElementById("loginSection").classList.add("hidden");
@@ -87,16 +93,11 @@ function showSignupTab() {
   document.getElementById("loginTab").classList.remove("active");
 }
 
-function updateUserDisplay() {
-  const account = getCurrentAccount();
-  document.getElementById("currentUserId").textContent = account ? account.id : "Not logged in";
-
-  if (account) {
-    document.getElementById("logoutBtn").classList.remove("hidden");
-  } else {
-    document.getElementById("logoutBtn").classList.add("hidden");
-  }
-
+function updateUserUI() {
+  const acc = getCurrentAccount();
+  document.getElementById("currentUserId").textContent = acc ? acc.id : "Not logged in";
+  document.getElementById("logoutBtn").style.display = acc ? "" : "none";
+  
   if (isEditor()) {
     document.getElementById("editorMark").classList.remove("hidden");
     document.getElementById("editorPanel").classList.remove("hidden");
@@ -106,205 +107,188 @@ function updateUserDisplay() {
   }
 }
 
-function getRegionClass(region) {
-  return `region-${(region || "na").toLowerCase()}`;
-}
+// --- Data Loading ---
 
 async function loadPlayers() {
   try {
     const snapshot = await getDocs(collection(db, "players"));
-    allPlayers = snapshot.docs.map(docSnap => ({
-      firebaseId: docSnap.id,
-      ...docSnap.data()
-    }));
+    allPlayers = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
     renderPlayers();
-  } catch (error) {
-    console.error("Error loading players:", error);
+  } catch (err) {
+    console.error("Error loading:", err);
   }
 }
+
+// --- Rendering ---
 
 function renderPlayers() {
   const list = document.getElementById("rankingList");
   const search = document.getElementById("searchInput").value.trim().toLowerCase();
+  let displayData = [];
 
-  const players = allPlayers
-    .filter(player => player.category === currentCategory)
-    .filter(player => (player.name || "").toLowerCase().includes(search));
+  if (currentCategory === "Overall") {
+    // AUTO-CALCULATE OVERALL LOGIC
+    // 1. Group players by Name
+    const playerMap = {};
+    
+    allPlayers.forEach(p => {
+      if (!p.name) return;
+      const name = p.name.trim().toLowerCase();
+      
+      if (!playerMap[name]) {
+        playerMap[name] = { 
+          displayName: p.name, 
+          rawName: p.name,
+          bestScore: 0, 
+          bestTag: "-", 
+          region: p.region,
+          tiers: [],
+          note: p.note,
+          docs: [] 
+        };
+      }
+      
+      const tiers = Array.isArray(p.tiers) ? p.tiers : [];
+      const tierObj = getBestTier(tiers);
+      
+      // Update best score if this entry is better
+      if (tierObj.score > playerMap[name].bestScore) {
+        playerMap[name].bestScore = tierObj.score;
+        playerMap[name].bestTag = tierObj.tag;
+        playerMap[name].tiers = tiers; // Store current best tiers list
+      }
+
+      // Collect tiers from all categories to show below
+      playerMap[name].tiers.push(...tiers); 
+
+      playerMap[name].docs.push({id: p.id, score: tierObj.score});
+      // Keep highest score note
+      if(playerMap[name].note === undefined && p.note) playerMap[name].note = p.note;
+    });
+
+    // 2. Convert map to array and sort
+    displayData = Object.values(playerMap).sort((a, b) => {
+      // Search Filter
+      if (!a.displayName.toLowerCase().includes(search)) return 1;
+      
+      // Sort by Best Score (Desc)
+      return b.bestScore - a.bestScore;
+    }).filter(a => a.displayName.toLowerCase().includes(search));
+
+    // 3. Add fake fields for rendering consistency
+    displayData = displayData.map(p => ({
+      firebaseId: p.docs[0].id, // Just use first ID for deleting purposes (will delete one)
+      name: p.displayName,
+      region: p.region || "NA",
+      tiers: [...new Set(p.tiers)].slice(0, 6), // Top 6 unique tags
+      note: `${p.bestTag} (${p.note || "Calculated"})`,
+      rawBestTag: p.bestTag
+    }));
+
+  } else {
+    // NORMAL CATEGORY LOGIC
+    displayData = allPlayers
+      .filter(p => p.category === currentCategory)
+      .filter(p => p.name && p.name.toLowerCase().includes(search))
+      .map(p => ({
+        firebaseId: p.id,
+        name: p.name,
+        region: p.region,
+        tiers: Array.isArray(p.tiers) ? p.tiers : [],
+        note: p.note
+      }));
+  }
 
   list.innerHTML = "";
 
-  if (!players.length) {
-    list.innerHTML = `<div class="empty-state">No players found in this category.</div>`;
+  if (!displayData.length) {
+    list.innerHTML = `<div style="padding:20px;text-align:center;color:#aaa">No players found.</div>`;
     return;
   }
 
-  players.forEach((player, index) => {
-    const tiers = Array.isArray(player.tiers) ? player.tiers : [];
-
+  displayData.forEach((p, idx) => {
     const row = document.createElement("div");
     row.className = "rank-row";
+    
+    const isOverAll = (currentCategory === "Overall");
+    const displayNote = isOverAll ? (p.rawBestTag || "") : (p.note || "");
 
     row.innerHTML = `
-      <div class="rank-pos">${index + 1}.</div>
+      <div class="rank-pos">${idx + 1}.</div>
+      <div>
+        <img src="${getPlayerSkin(p.name)}" class="player-skin" alt="skin" onerror="this.src='https://minotar.net/helm/MHF/150.png'">
+      </div>
       <div class="player-main">
-        <h4>${escapeHtml(player.name)}</h4>
-        <p>${escapeHtml(player.note || "")}</p>
-        ${isEditor() ? `<button class="delete-btn" data-id="${player.firebaseId}">Delete</button>` : ""}
+        <h4>${escapeHtml(p.name)}</h4>
+        <p>${escapeHtml(displayNote)}</p>
+        ${isEditor() && currentCategory !== "Overall" ? `<button class="delete-btn" onclick="deleteFn('${p.firebaseId}')">Delete</button>` : ""}
       </div>
       <div>
-        <span class="region-badge ${getRegionClass(player.region)}">${escapeHtml(player.region || "NA")}</span>
+        <span class="region-badge region-${(p.region||"na").toLowerCase()}">${escapeHtml(p.region || "NA")}</span>
       </div>
       <div class="tier-tags">
-        ${tiers.map(tier => `<span class="tier-tag">${escapeHtml(tier)}</span>`).join("")}
+        ${(isOverAll ? [p.rawBestTag] : p.tiers).map(t => `<span class="tier-tag">${t}</span>`).join("")}
       </div>
     `;
-
     list.appendChild(row);
   });
-
-  if (isEditor()) {
-    document.querySelectorAll(".delete-btn").forEach(btn => {
-      btn.addEventListener("click", async function () {
-        await deletePlayer(this.dataset.id);
-      });
-    });
-  }
 }
 
-async function deletePlayer(firebaseId) {
-  if (!isEditor()) {
-    alert("You do not have permission.");
-    return;
-  }
+// --- Actions ---
 
+window.deleteFn = async function(fid) {
+  if (!isEditor()) return alert("No permission.");
   try {
-    await deleteDoc(doc(db, "players", firebaseId));
-    await loadPlayers();
-  } catch (error) {
-    console.error("Error deleting player:", error);
-  }
-}
+    await deleteDoc(doc(db, "players", fid));
+    loadPlayers();
+  } catch(e) { console.error(e); }
+};
 
-document.getElementById("openAuthBtn").addEventListener("click", openAuthModal);
-document.getElementById("loginTab").addEventListener("click", showLoginTab);
-document.getElementById("signupTab").addEventListener("click", showSignupTab);
-
-document.getElementById("logoutBtn").addEventListener("click", function () {
-  clearSession();
-  updateUserDisplay();
-  renderPlayers();
-  openAuthModal();
-});
-
-document.getElementById("loginForm").addEventListener("submit", function (e) {
+document.getElementById("loginForm").onsubmit = e => {
   e.preventDefault();
+  const u = document.getElementById("loginIdInput").value.trim();
+  const p = document.getElementById("loginPasswordInput").value;
+  const ac = getAccounts().find(x => x.id===u && x.password===p);
+  if(ac){ setSessionId(u); closeAuth(); updateUserUI(); renderPlayers(); }
+  else alert("Invalid login");
+};
 
-  const id = document.getElementById("loginIdInput").value.trim();
-  const password = document.getElementById("loginPasswordInput").value;
-
-  const account = getAccounts().find(acc =>
-    acc.id.toLowerCase() === id.toLowerCase() && acc.password === password
-  );
-
-  if (!account) {
-    alert("Invalid ID or password.");
-    return;
-  }
-
-  setSessionId(account.id);
-  this.reset();
-  closeAuthModal();
-  updateUserDisplay();
-  renderPlayers();
-});
-
-document.getElementById("signupForm").addEventListener("submit", function (e) {
+document.getElementById("signupForm").onsubmit = e => {
   e.preventDefault();
+  const u = document.getElementById("signupIdInput").value.trim();
+  const p = document.getElementById("signupPasswordInput").value;
+  if(getAccounts().some(x => x.id===u)) return alert("Taken");
+  getAccounts().push({id:u, password:p});
+  saveAccounts(getAccounts());
+  setSessionId(u); closeAuth(); updateUserUI(); renderPlayers();
+};
 
-  const id = document.getElementById("signupIdInput").value.trim();
-  const password = document.getElementById("signupPasswordInput").value;
-
-  if (!id || !password) {
-    alert("Please fill all fields.");
-    return;
-  }
-
-  const accounts = getAccounts();
-
-  if (accounts.find(acc => acc.id.toLowerCase() === id.toLowerCase())) {
-    alert("That ID is already taken on this browser.");
-    return;
-  }
-
-  accounts.push({ id, password });
-  saveAccounts(accounts);
-  setSessionId(id);
-
-  this.reset();
-  closeAuthModal();
-  updateUserDisplay();
-  renderPlayers();
-});
-
-document.getElementById("playerForm").addEventListener("submit", async function (e) {
+document.getElementById("playerForm").onsubmit = async e => {
   e.preventDefault();
-
-  if (!isEditor()) {
-    alert("You do not have permission.");
-    return;
-  }
-
-  const name = document.getElementById("playerName").value.trim();
-  const category = document.getElementById("playerCategory").value;
-  const region = document.getElementById("playerRegion").value;
-  const tiers = document.getElementById("playerTiers").value
-    .split(",")
-    .map(t => t.trim())
-    .filter(Boolean);
+  if(!isEditor()) return alert("No permission");
+  const nm = document.getElementById("playerName").value.trim();
+  const cat = document.getElementById("playerCategory").value;
+  const reg = document.getElementById("playerRegion").value;
+  const tiers = document.getElementById("playerTiers").value.split(",").map(s=>s.trim()).filter(Boolean);
   const note = document.getElementById("playerNote").value.trim();
+  
+  if(!nm || !cat || !reg || !tiers.length) return alert("Fill fields");
+  
+  await addDoc(collection(db,"players"), {name:nm, category:cat, region:reg, tiers:tiers, note:note});
+  e.target.reset();
+  loadPlayers();
+};
 
-  if (!name || !category || !region || !tiers.length) {
-    alert("Please fill all required fields.");
-    return;
-  }
-
-  try {
-    await addDoc(collection(db, "players"), {
-      name,
-      category,
-      region,
-      tiers,
-      note
-    });
-
-    this.reset();
-    await loadPlayers();
-  } catch (error) {
-    console.error("Error adding player:", error);
-  }
+document.querySelectorAll(".cat-btn").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".cat-btn").forEach(x => x.classList.remove("active"));
+  b.classList.add("active");
+  currentCategory = b.dataset.category;
+  document.getElementById("currentCategoryTitle").innerText = `${currentCategory} Rankings`;
+  renderPlayers();
 });
 
-document.getElementById("searchInput").addEventListener("input", renderPlayers);
-
-document.querySelectorAll(".cat-btn").forEach(btn => {
-  btn.addEventListener("click", function () {
-    document.querySelectorAll(".cat-btn").forEach(b => b.classList.remove("active"));
-    this.classList.add("active");
-    currentCategory = this.dataset.category;
-    document.getElementById("currentCategoryTitle").textContent = `${currentCategory} Rankings`;
-    renderPlayers();
-  });
-});
-
-async function init() {
-  if (!getCurrentAccount()) {
-    openAuthModal();
-  }
-
-  showLoginTab();
-  updateUserDisplay();
-  await loadPlayers();
-  setInterval(loadPlayers, 10000);
-}
-
-init();
+// Init
+if(!getCurrentAccount()) openAuth(); else updateUserUI();
+showLoginTab();
+loadPlayers();
+setInterval(loadPlayers, 10000); // Refresh every 10s
