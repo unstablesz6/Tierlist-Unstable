@@ -13,7 +13,7 @@
         <div class="modal-logo">U</div>
         <div>
           <h2>Unstablesz6 Tiers</h2>
-          <p>Login or create your ID to continue</p>
+          <p>Login or create your account to continue</p>
         </div>
       </div>
 
@@ -24,19 +24,21 @@
 
       <div id="loginSection">
         <form id="loginForm">
-          <input type="text" id="loginIdInput" placeholder="Enter your ID" maxlength="20" required />
+          <input type="email" id="loginEmailInput" placeholder="Enter your email" required />
           <input type="password" id="loginPasswordInput" placeholder="Enter your password" required />
           <button type="submit">Login</button>
         </form>
+        <p id="loginError" class="error-text hidden"></p>
       </div>
 
       <div id="signupSection" class="hidden">
         <form id="signupForm">
-          <input type="text" id="signupIdInput" placeholder="Choose your ID" maxlength="20" required />
-          <input type="password" id="signupPasswordInput" placeholder="Choose your password" required />
+          <input type="email" id="signupEmailInput" placeholder="Choose an email" required />
+          <input type="password" id="signupPasswordInput" placeholder="Choose a password" required />
           <button type="submit">Create Account</button>
         </form>
-        <p class="modal-note">Editor IDs: <strong>wemmbu</strong>, <strong>kaiser</strong></p>
+        <p id="signupError" class="error-text hidden"></p>
+        <p class="modal-note">Contact admins for editor access.</p>
       </div>
     </div>
   </div>
@@ -90,10 +92,6 @@
                 <span>Allowed Servers</span>
                 <strong>catpvp.xyz • mcpvp.club</strong>
               </div>
-              <div class="user-pill">
-                ID: <span id="currentUserId">Not logged in</span>
-                <span id="editorMark" class="editor-mark hidden">EDITOR</span>
-              </div>
             </div>
           </div>
 
@@ -116,7 +114,6 @@
               
               <select id="playerCategory" required>
                 <option value="">Select Category</option>
-                <!-- Overall removed from here -->
                 <option value="Cart">Cart</option>
                 <option value="Vanilla">Vanilla</option>
                 <option value="UHC">UHC</option>
