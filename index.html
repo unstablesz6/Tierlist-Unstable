@@ -99,6 +99,7 @@
 
           <div class="ranking-head">
             <div>#</div>
+            <div>Skin</div>
             <div>Player</div>
             <div>Region</div>
             <div>Tiers</div>
@@ -111,11 +112,11 @@
           <div id="editorPanel" class="info-card hidden">
             <h3>Add Player</h3>
             <form id="playerForm">
-              <input type="text" id="playerName" placeholder="Player name" required />
+              <input type="text" id="playerName" placeholder="Player Username" required />
               
               <select id="playerCategory" required>
-                <option value="">Select category</option>
-                <option value="Overall">Overall</option>
+                <option value="">Select Category</option>
+                <!-- Overall removed from here -->
                 <option value="Cart">Cart</option>
                 <option value="Vanilla">Vanilla</option>
                 <option value="UHC">UHC</option>
@@ -128,14 +129,14 @@
               </select>
 
               <select id="playerRegion" required>
-                <option value="">Select region</option>
+                <option value="">Select Region</option>
                 <option value="NA">NA</option>
                 <option value="EU">EU</option>
                 <option value="AS">AS</option>
               </select>
 
-              <input type="text" id="playerTiers" placeholder="Example: HT1, LT2, HT3" required />
-              <input type="text" id="playerNote" placeholder="Example: Combat Master (330 points)" />
+              <input type="text" id="playerTiers" placeholder="Example: HT1, LT2" required />
+              <input type="text" id="playerNote" placeholder="Example: Points / Title" />
               <button type="submit">Add Player</button>
             </form>
           </div>
