@@ -2,6 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/fireba
 import {
   getFirestore, collection, getDocs, addDoc, deleteDoc, doc
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import {
+  getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile
+} from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB-dYAQnwzpsiiyDqWj3Jaow91b3LOZjF8",
@@ -15,39 +18,24 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-const ACCOUNTS_KEY = "usz6_accounts";
-const SESSION_KEY = "usz6_session_id";
-const EDITOR_IDS = ["wemmbu", "kaiser"];
+// Approved editor emails
+const EDITOR_EMAILS = [
+  "wemmbu@unstablesz6.com",
+  "kaiser@unstablesz6.com"
+];
 
 let currentCategory = "Overall";
 let allPlayers = [];
+let currentUser = null;
 
 // --- Helper Functions ---
-function getAccounts() { return JSON.parse(localStorage.getItem(ACCOUNTS_KEY)) || []; }
-function saveAccounts(accounts) { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts)); }
-function getSessionId() { return localStorage.getItem(SESSION_KEY); }
-function setSessionId(id) { localStorage.setItem(SESSION_KEY, id); }
-function clearSession() { localStorage.removeItem(SESSION_KEY); }
-
-function getCurrentAccount() {
-  const id = getSessionId();
-  if (!id) return null;
-  return getAccounts().find(a => a.id.toLowerCase() === id.toLowerCase()) || null;
-}
-
-function isEditor() {
-  const acc = getCurrentAccount();
-  return acc ? EDITOR_IDS.includes(acc.id.toLowerCase()) : false;
-}
-
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.innerText = str || "";
   return div.innerHTML;
 }
-
-// --- Skin & Tier Logic ---
 
 function getPlayerSkin(username) {
   return `https://minotar.net/helm/${username}/150.png`;
@@ -77,38 +65,116 @@ function getBestTier(tierArray) {
   return { score: bestScore, tag: bestTag };
 }
 
-// --- Auth UI ---
-function openAuth() { document.getElementById("authModal").classList.remove("hidden"); }
-function closeAuth() { document.getElementById("authModal").classList.add("hidden"); }
+function isEditor() {
+  return currentUser && EDITOR_EMAILS.includes(currentUser.email);
+}
+
+// --- Modal Functions ---
+function openAuthModal() { document.getElementById("authModal").classList.remove("hidden"); }
+function closeAuthModal() { document.getElementById("authModal").classList.add("hidden"); }
+
 function showLoginTab() {
   document.getElementById("loginSection").classList.remove("hidden");
   document.getElementById("signupSection").classList.add("hidden");
   document.getElementById("loginTab").classList.add("active");
   document.getElementById("signupTab").classList.remove("active");
+  document.getElementById("loginError").classList.add("hidden");
+  document.getElementById("signupError").classList.add("hidden");
 }
+
 function showSignupTab() {
   document.getElementById("signupSection").classList.remove("hidden");
   document.getElementById("loginSection").classList.add("hidden");
   document.getElementById("signupTab").classList.add("active");
   document.getElementById("loginTab").classList.remove("active");
+  document.getElementById("loginError").classList.add("hidden");
+  document.getElementById("signupError").classList.add("hidden");
 }
 
-function updateUserUI() {
-  const acc = getCurrentAccount();
-  document.getElementById("currentUserId").textContent = acc ? acc.id : "Not logged in";
-  document.getElementById("logoutBtn").style.display = acc ? "" : "none";
-  
-  if (isEditor()) {
-    document.getElementById("editorMark").classList.remove("hidden");
-    document.getElementById("editorPanel").classList.remove("hidden");
-  } else {
-    document.getElementById("editorMark").classList.add("hidden");
-    document.getElementById("editorPanel").classList.add("hidden");
-  }
+// --- Player Detail Modal ---
+function openPlayerModal(playerData) {
+  const overlay = document.querySelector(".row-modal-overlay");
+  if (overlay) overlay.remove();
+
+  // Gather all tiers for this player across categories
+  const categoryMap = {};
+  allPlayers.filter(p => p.name === playerData.rawName).forEach(p => {
+    const cat = p.category;
+    if (!categoryMap[cat]) categoryMap[cat] = [];
+    if (p.tiers && Array.isArray(p.tiers)) {
+      categoryMap[cat].push(...p.tiers);
+    }
+  });
+
+  const uniqueCategories = Object.keys(categoryMap).sort((a, b) => {
+    const scoreA = Math.max(...(categoryMap[a].map(t => tierScores[t] || 0)));
+    const scoreB = Math.max(...(categoryMap[b].map(t => tierScores[t] || 0)));
+    return scoreB - scoreA;
+  });
+
+  const modalHTML = `
+    <div class="row-modal-overlay">
+      <div class="row-modal-box">
+        <div class="row-modal-header">
+          <img src="${getPlayerSkin(playerData.name)}" class="row-modal-avatar" alt="skin">
+          <div>
+            <h2>${escapeHtml(playerData.name)}</h2>
+            <p style="color:var(--muted);margin:4px 0 0">${escapeHtml(playerData.note || "")}</p>
+          </div>
+        </div>
+        <div class="row-modal-tiers">
+          ${uniqueCategories.map(cat => `
+            <div class="row-modal-category">
+              <h4>${getCategoryIcon(cat)} ${escapeHtml(cat)}</h4>
+              <div class="tier-tags">
+                ${[...new Set(categoryMap[cat])].slice(0, 6).map(t => `<span class="tier-tag">${getTierIcon(cat)}${t}</span>`).join("")}
+              </div>
+            </div>
+          `).join("")}
+        </div>
+        <button onclick="closePlayerModal()" style="margin-top:20px;background:#2a3355">Close</button>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+}
+
+function closePlayerModal() {
+  const overlay = document.querySelector(".row-modal-overlay");
+  if (overlay) overlay.remove();
+}
+
+function getCategoryIcon(category) {
+  const icons = {
+    "Cart": "🛒",
+    "Vanilla": "🛡",
+    "UHC": "❤",
+    "Pot": "🧪",
+    "NethOP": "☠",
+    "SMP": "🟢",
+    "Sword": "🗡",
+    "Axe": "🔨",
+    "Mace": "🔩",
+    "Overall": "🏆"
+  };
+  return icons[category] || "🎮";
+}
+
+function getTierIcon(category) {
+  const icons = {
+    "Sword": "🗡",
+    "Axe": "🔨",
+    "Mace": "🔩",
+    "Vanilla": "💎",
+    "Pot": "⚗️",
+    "UHC": "🐑",
+    "Cart": "🛒"
+  };
+  return icons[category] || "";
 }
 
 // --- Data Loading ---
-
 async function loadPlayers() {
   try {
     const snapshot = await getDocs(collection(db, "players"));
@@ -120,15 +186,12 @@ async function loadPlayers() {
 }
 
 // --- Rendering ---
-
 function renderPlayers() {
   const list = document.getElementById("rankingList");
   const search = document.getElementById("searchInput").value.trim().toLowerCase();
   let displayData = [];
 
   if (currentCategory === "Overall") {
-    // AUTO-CALCULATE OVERALL LOGIC
-    // 1. Group players by Name
     const playerMap = {};
     
     allPlayers.forEach(p => {
@@ -151,48 +214,40 @@ function renderPlayers() {
       const tiers = Array.isArray(p.tiers) ? p.tiers : [];
       const tierObj = getBestTier(tiers);
       
-      // Update best score if this entry is better
       if (tierObj.score > playerMap[name].bestScore) {
         playerMap[name].bestScore = tierObj.score;
         playerMap[name].bestTag = tierObj.tag;
-        playerMap[name].tiers = tiers; // Store current best tiers list
       }
 
-      // Collect tiers from all categories to show below
       playerMap[name].tiers.push(...tiers); 
 
       playerMap[name].docs.push({id: p.id, score: tierObj.score});
-      // Keep highest score note
       if(playerMap[name].note === undefined && p.note) playerMap[name].note = p.note;
     });
 
-    // 2. Convert map to array and sort
     displayData = Object.values(playerMap).sort((a, b) => {
-      // Search Filter
       if (!a.displayName.toLowerCase().includes(search)) return 1;
-      
-      // Sort by Best Score (Desc)
       return b.bestScore - a.bestScore;
     }).filter(a => a.displayName.toLowerCase().includes(search));
 
-    // 3. Add fake fields for rendering consistency
     displayData = displayData.map(p => ({
-      firebaseId: p.docs[0].id, // Just use first ID for deleting purposes (will delete one)
+      firebaseId: p.docs[0].id,
       name: p.displayName,
+      rawName: p.displayName,
       region: p.region || "NA",
-      tiers: [...new Set(p.tiers)].slice(0, 6), // Top 6 unique tags
+      tiers: [...new Set(p.tiers)].slice(0, 6),
       note: `${p.bestTag} (${p.note || "Calculated"})`,
-      rawBestTag: p.bestTag
+      bestTag: p.bestTag
     }));
 
   } else {
-    // NORMAL CATEGORY LOGIC
     displayData = allPlayers
       .filter(p => p.category === currentCategory)
       .filter(p => p.name && p.name.toLowerCase().includes(search))
       .map(p => ({
         firebaseId: p.id,
         name: p.name,
+        rawName: p.name,
         region: p.region,
         tiers: Array.isArray(p.tiers) ? p.tiers : [],
         note: p.note
@@ -210,9 +265,6 @@ function renderPlayers() {
     const row = document.createElement("div");
     row.className = "rank-row";
     
-    const isOverAll = (currentCategory === "Overall");
-    const displayNote = isOverAll ? (p.rawBestTag || "") : (p.note || "");
-
     row.innerHTML = `
       <div class="rank-pos">${idx + 1}.</div>
       <div>
@@ -220,52 +272,69 @@ function renderPlayers() {
       </div>
       <div class="player-main">
         <h4>${escapeHtml(p.name)}</h4>
-        <p>${escapeHtml(displayNote)}</p>
-        ${isEditor() && currentCategory !== "Overall" ? `<button class="delete-btn" onclick="deleteFn('${p.firebaseId}')">Delete</button>` : ""}
+        <p>${escapeHtml(p.note || "")}</p>
       </div>
       <div>
         <span class="region-badge region-${(p.region||"na").toLowerCase()}">${escapeHtml(p.region || "NA")}</span>
       </div>
       <div class="tier-tags">
-        ${(isOverAll ? [p.rawBestTag] : p.tiers).map(t => `<span class="tier-tag">${t}</span>`).join("")}
+        ${(currentCategory === "Overall" ? [p.bestTag] : p.tiers).map(t => `<span class="tier-tag">${getTierIcon(currentCategory)}${t}</span>`).join("")}
       </div>
     `;
+    
+    row.onclick = () => openPlayerModal(p);
+    
     list.appendChild(row);
   });
 }
 
 // --- Actions ---
+window.closePlayerModal = closePlayerModal;
 
-window.deleteFn = async function(fid) {
-  if (!isEditor()) return alert("No permission.");
+document.getElementById("loginForm").onsubmit = async e => {
+  e.preventDefault();
+  const email = document.getElementById("loginEmailInput").value.trim();
+  const password = document.getElementById("loginPasswordInput").value;
+  
   try {
-    await deleteDoc(doc(db, "players", fid));
+    await signInWithEmailAndPassword(auth, email, password);
+    closeAuthModal();
+    document.getElementById("logoutBtn").classList.remove("hidden");
+    updateUserUI();
     loadPlayers();
-  } catch(e) { console.error(e); }
+  } catch (error) {
+    document.getElementById("loginError").textContent = error.message;
+    document.getElementById("loginError").classList.remove("hidden");
+  }
 };
 
-document.getElementById("loginForm").onsubmit = e => {
+document.getElementById("signupForm").onsubmit = async e => {
   e.preventDefault();
-  const u = document.getElementById("loginIdInput").value.trim();
-  const p = document.getElementById("loginPasswordInput").value;
-  const ac = getAccounts().find(x => x.id===u && x.password===p);
-  if(ac){ setSessionId(u); closeAuth(); updateUserUI(); renderPlayers(); }
-  else alert("Invalid login");
+  const email = document.getElementById("signupEmailInput").value.trim();
+  const password = document.getElementById("signupPasswordInput").value;
+  
+  try {
+    await createUserWithEmailAndPassword(auth, email, password);
+    closeAuthModal();
+    document.getElementById("logoutBtn").classList.remove("hidden");
+    updateUserUI();
+    loadPlayers();
+  } catch (error) {
+    document.getElementById("signupError").textContent = error.message;
+    document.getElementById("signupError").classList.remove("hidden");
+  }
 };
 
-document.getElementById("signupForm").onsubmit = e => {
-  e.preventDefault();
-  const u = document.getElementById("signupIdInput").value.trim();
-  const p = document.getElementById("signupPasswordInput").value;
-  if(getAccounts().some(x => x.id===u)) return alert("Taken");
-  getAccounts().push({id:u, password:p});
-  saveAccounts(getAccounts());
-  setSessionId(u); closeAuth(); updateUserUI(); renderPlayers();
+document.getElementById("logoutBtn").onclick = () => {
+  signOut(auth);
+  document.getElementById("logoutBtn").classList.add("hidden");
+  updateUserUI();
 };
 
 document.getElementById("playerForm").onsubmit = async e => {
   e.preventDefault();
   if(!isEditor()) return alert("No permission");
+  
   const nm = document.getElementById("playerName").value.trim();
   const cat = document.getElementById("playerCategory").value;
   const reg = document.getElementById("playerRegion").value;
@@ -279,16 +348,52 @@ document.getElementById("playerForm").onsubmit = async e => {
   loadPlayers();
 };
 
-document.querySelectorAll(".cat-btn").forEach(b => b.onclick = () => {
-  document.querySelectorAll(".cat-btn").forEach(x => x.classList.remove("active"));
-  b.classList.add("active");
-  currentCategory = b.dataset.category;
-  document.getElementById("currentCategoryTitle").innerText = `${currentCategory} Rankings`;
+window.deleteFn = async function(fid) {
+  if (!isEditor()) return alert("No permission");
+  try {
+    await deleteDoc(doc(db, "players", fid));
+    loadPlayers();
+  } catch(e) { console.error(e); }
+};
+
+document.querySelectorAll(".cat-btn").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".cat-btn").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    currentCategory = b.dataset.category;
+    document.getElementById("currentCategoryTitle").innerText = `${currentCategory} Rankings`;
+    renderPlayers();
+  };
+});
+
+// --- Auth State Observer ---
+onAuthStateChanged(auth, (user) => {
+  currentUser = user;
+  
+  if (user) {
+    document.getElementById("logoutBtn").classList.remove("hidden");
+  } else {
+    document.getElementById("logoutBtn").classList.add("hidden");
+    openAuthModal();
+  }
+  
+  updateUserUI();
   renderPlayers();
 });
 
-// Init
-if(!getCurrentAccount()) openAuth(); else updateUserUI();
-showLoginTab();
+function updateUserUI() {
+  const acc = currentUser;
+  document.getElementById("logoutBtn").style.display = acc ? "" : "none";
+  
+  if (isEditor()) {
+    document.getElementById("editorPanel").classList.remove("hidden");
+  } else {
+    document.getElementById("editorPanel").classList.add("hidden");
+  }
+}
+
+// --- Init ---
+if(!currentUser) openAuthModal();
+updateUserUI();
 loadPlayers();
-setInterval(loadPlayers, 10000); // Refresh every 10s
+setInterval(loadPlayers, 10000);
