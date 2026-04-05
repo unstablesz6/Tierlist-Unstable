@@ -140,10 +140,6 @@ button:hover {
   background: rgba(18, 26, 39, 0.9);
   color: var(--muted);
   font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
 }
 
 .cat-btn.active,
@@ -151,13 +147,6 @@ button:hover {
   color: white;
   background: #15233d;
   border-color: var(--accent);
-}
-
-.tab-icon {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  image-rendering: pixelated;
 }
 
 .content-grid {
@@ -311,17 +300,6 @@ button:hover {
   padding: 6px 10px;
   font-size: 12px;
   font-weight: 800;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.tier-icon {
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  image-rendering: pixelated;
-  vertical-align: middle;
 }
 
 .side-panel .info-card {
@@ -451,16 +429,6 @@ button:hover {
 .row-modal-category h4 {
   margin: 0 0 10px;
   color: var(--accent);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.row-modal-category h4 img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  image-rendering: pixelated;
 }
 
 @keyframes fadeIn {
