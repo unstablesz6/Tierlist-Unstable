@@ -67,16 +67,16 @@
 
     <main class="main">
       <section class="category-bar">
-        <button class="cat-btn active" data-category="Overall">🏆 Overall</button>
-        <button class="cat-btn" data-category="Cart">🛒 Cart</button>
-        <button class="cat-btn" data-category="Vanilla">🛡 Vanilla</button>
-        <button class="cat-btn" data-category="UHC">❤ UHC</button>
-        <button class="cat-btn" data-category="Pot">🧪 Pot</button>
-        <button class="cat-btn" data-category="NethOP">☠ NethOP</button>
-        <button class="cat-btn" data-category="SMP">🟢 SMP</button>
-        <button class="cat-btn" data-category="Sword">🗡 Sword</button>
-        <button class="cat-btn" data-category="Axe">🔨 Axe</button>
-        <button class="cat-btn" data-category="Mace">🔩 Mace</button>
+        <button class="cat-btn active" data-category="Overall"><img src="icons/overall.png" class="tab-icon" alt=""> Overall</button>
+        <button class="cat-btn" data-category="Cart"><img src="icons/cart.png" class="tab-icon" alt=""> Cart</button>
+        <button class="cat-btn" data-category="Vanilla"><img src="icons/vanilla.png" class="tab-icon" alt=""> Vanilla</button>
+        <button class="cat-btn" data-category="UHC"><img src="icons/uhc.png" class="tab-icon" alt=""> UHC</button>
+        <button class="cat-btn" data-category="Pot"><img src="icons/pot.png" class="tab-icon" alt=""> Pot</button>
+        <button class="cat-btn" data-category="NethOP"><img src="icons/nethop.png" class="tab-icon" alt=""> NethOP</button>
+        <button class="cat-btn" data-category="SMP"><img src="icons/smp.png" class="tab-icon" alt=""> SMP</button>
+        <button class="cat-btn" data-category="Sword"><img src="icons/sword.png" class="tab-icon" alt=""> Sword</button>
+        <button class="cat-btn" data-category="Axe"><img src="icons/axe.png" class="tab-icon" alt=""> Axe</button>
+        <button class="cat-btn" data-category="Mace"><img src="icons/mace.png" class="tab-icon" alt=""> Mace</button>
       </section>
 
       <section class="content-grid">
@@ -109,10 +109,10 @@
 
         <aside class="side-panel">
           <div id="editorPanel" class="info-card hidden">
-            <h3>Add Player</h3>
+            <h3>Add Player Rank</h3>
             <form id="playerForm">
               <input type="text" id="playerName" placeholder="Player Username" required />
-              
+
               <select id="playerCategory" required>
                 <option value="">Select Category</option>
                 <option value="Cart">Cart</option>
@@ -135,7 +135,29 @@
 
               <input type="text" id="playerTiers" placeholder="Example: HT1, LT2" required />
               <input type="text" id="playerNote" placeholder="Example: Points / Title" />
-              <button type="submit">Add Player</button>
+              <button type="submit">Add Player Rank</button>
+            </form>
+
+            <hr class="editor-divider">
+
+            <h3>Remove Player Rank</h3>
+            <form id="removeRankForm">
+              <input type="text" id="removePlayerName" placeholder="Player Username" required />
+
+              <select id="removePlayerCategory" required>
+                <option value="">Select Category</option>
+                <option value="Cart">Cart</option>
+                <option value="Vanilla">Vanilla</option>
+                <option value="UHC">UHC</option>
+                <option value="Pot">Pot</option>
+                <option value="NethOP">NethOP</option>
+                <option value="SMP">SMP</option>
+                <option value="Sword">Sword</option>
+                <option value="Axe">Axe</option>
+                <option value="Mace">Mace</option>
+              </select>
+
+              <button type="submit" class="danger-btn">Remove Player Rank</button>
             </form>
           </div>
         </aside>
