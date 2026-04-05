@@ -40,19 +40,6 @@ let currentCategory = "Overall";
 let allPlayers = [];
 let currentUser = null;
 
-/*
-Correct order:
-HT1
-LT1
-HT2
-LT2
-HT3
-LT3
-HT4
-LT4
-HT5
-LT5
-*/
 const tierScores = {
   HT1: 100,
   LT1: 95,
@@ -139,24 +126,20 @@ function showSignupTab() {
   document.getElementById("signupError").classList.add("hidden");
 }
 
-function getCategoryIconPath(category) {
+function getCategoryEmoji(category) {
   const icons = {
-    Overall: "icons/overall.png",
-    Cart: "icons/cart.png",
-    Vanilla: "icons/vanilla.png",
-    UHC: "icons/uhc.png",
-    Pot: "icons/pot.png",
-    NethOP: "icons/nethop.png",
-    SMP: "icons/smp.png",
-    Sword: "icons/sword.png",
-    Axe: "icons/axe.png",
-    Mace: "icons/mace.png"
+    Overall: "🏆",
+    Cart: "🛒",
+    Vanilla: "💎",
+    UHC: "❤️",
+    Pot: "🧪",
+    NethOP: "⛑️",
+    SMP: "🛡️",
+    Sword: "🗡️",
+    Axe: "🪓",
+    Mace: "🔨"
   };
-  return icons[category] || "icons/overall.png";
-}
-
-function getTierIcon(category) {
-  return `<img src="${getCategoryIconPath(category)}" class="tier-icon" alt="${category}">`;
+  return icons[category] || "🎮";
 }
 
 function updateUserUI() {
@@ -215,18 +198,18 @@ function openPlayerModal(playerData) {
 
         <div class="row-modal-tiers">
           <div class="row-modal-category">
-            <h4>${getTierIcon("Overall")} Overall</h4>
+            <h4>${getCategoryEmoji("Overall")} Overall</h4>
             <div class="tier-tags">
-              <span class="tier-tag">${getTierIcon("Overall")} ${escapeHtml(playerData.bestTag || "-")}</span>
+              <span class="tier-tag">${getCategoryEmoji("Overall")} ${escapeHtml(playerData.bestTag || "-")}</span>
             </div>
           </div>
 
           ${Object.keys(categoryMap).map(cat => `
             <div class="row-modal-category">
-              <h4><img src="${getCategoryIconPath(cat)}" alt="${cat}"> ${escapeHtml(cat)}</h4>
+              <h4>${getCategoryEmoji(cat)} ${escapeHtml(cat)}</h4>
               <div class="tier-tags">
                 ${categoryMap[cat].map(t => `
-                  <span class="tier-tag">${getTierIcon(cat)} ${escapeHtml(t)}</span>
+                  <span class="tier-tag">${getCategoryEmoji(cat)} ${escapeHtml(t)}</span>
                 `).join("")}
               </div>
             </div>
@@ -338,7 +321,7 @@ function renderPlayers() {
         <span class="region-badge region-${(p.region || "na").toLowerCase()}">${escapeHtml(p.region)}</span>
       </div>
       <div class="tier-tags">
-        ${shownTiers.map(t => `<span class="tier-tag">${getTierIcon(currentCategory)} ${escapeHtml(t)}</span>`).join("")}
+        ${shownTiers.map(t => `<span class="tier-tag">${getCategoryEmoji(currentCategory)} ${escapeHtml(t)}</span>`).join("")}
       </div>
     `;
 
@@ -442,10 +425,10 @@ document.getElementById("removeRankForm").addEventListener("submit", async e => 
     return;
   }
 
-  const name = document.getElementById("removePlayerName").value.trim().toLowerCase();
+  const enteredName = document.getElementById("removePlayerName").value.trim();
   const category = document.getElementById("removePlayerCategory").value;
 
-  if (!name || !category) {
+  if (!enteredName || !category) {
     alert("Fill fields");
     return;
   }
@@ -454,7 +437,7 @@ document.getElementById("removeRankForm").addEventListener("submit", async e => 
     const q = query(
       collection(db, "players"),
       where("category", "==", category),
-      where("name", "==", document.getElementById("removePlayerName").value.trim())
+      where("name", "==", enteredName)
     );
 
     const snapshot = await getDocs(q);
