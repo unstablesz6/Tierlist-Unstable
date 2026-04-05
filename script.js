@@ -1,6 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import {
-  getFirestore, collection, getDocs, addDoc, deleteDoc, doc
+  getFirestore,
+  collection,
+  getDocs,
+  addDoc,
+  query,
+  where,
+  deleteDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 import {
   getAuth,
@@ -33,6 +40,33 @@ let currentCategory = "Overall";
 let allPlayers = [];
 let currentUser = null;
 
+/*
+Correct order:
+HT1
+LT1
+HT2
+LT2
+HT3
+LT3
+HT4
+LT4
+HT5
+LT5
+*/
+const tierScores = {
+  HT1: 100,
+  LT1: 95,
+  HT2: 90,
+  LT2: 85,
+  HT3: 80,
+  LT3: 75,
+  HT4: 70,
+  LT4: 65,
+  HT5: 60,
+  LT5: 55,
+  "-": 0
+};
+
 function escapeHtml(str) {
   const div = document.createElement("div");
   div.innerText = str || "";
@@ -43,28 +77,36 @@ function getPlayerSkin(username) {
   return `https://minotar.net/helm/${username}/150.png`;
 }
 
-const tierScores = {
-  "HT1": 100, "HT2": 90, "HT3": 80,
-  "LT1": 70, "LT2": 60, "LT3": 50,
-  "LT4": 40, "LT5": 30,
-  "-": 0
-};
+function normalizeTier(tier) {
+  return String(tier || "").trim().toUpperCase();
+}
 
 function getBestTier(tierArray) {
-  if (!Array.isArray(tierArray) || tierArray.length === 0) return { score: 0, tag: "-" };
+  if (!Array.isArray(tierArray) || tierArray.length === 0) {
+    return { score: 0, tag: "-" };
+  }
 
-  let bestScore = 0;
   let bestTag = "-";
+  let bestScore = 0;
 
   tierArray.forEach(t => {
-    const score = tierScores[t] || 0;
+    const clean = normalizeTier(t);
+    const score = tierScores[clean] || 0;
     if (score > bestScore) {
       bestScore = score;
-      bestTag = t;
+      bestTag = clean;
     }
   });
 
   return { score: bestScore, tag: bestTag };
+}
+
+function sortTiersBestFirst(tiers) {
+  return [...tiers].sort((a, b) => {
+    const scoreA = tierScores[normalizeTier(a)] || 0;
+    const scoreB = tierScores[normalizeTier(b)] || 0;
+    return scoreB - scoreA;
+  });
 }
 
 function isEditor() {
@@ -97,34 +139,24 @@ function showSignupTab() {
   document.getElementById("signupError").classList.add("hidden");
 }
 
-function getCategoryIcon(category) {
+function getCategoryIconPath(category) {
   const icons = {
-    "Cart": "🛒",
-    "Vanilla": "💎",
-    "UHC": "❤",
-    "Pot": "🧪",
-    "NethOP": "☠",
-    "SMP": "🟢",
-    "Sword": "🗡",
-    "Axe": "🪓",
-    "Mace": "🔨",
-    "Overall": "🏆"
+    Overall: "icons/overall.png",
+    Cart: "icons/cart.png",
+    Vanilla: "icons/vanilla.png",
+    UHC: "icons/uhc.png",
+    Pot: "icons/pot.png",
+    NethOP: "icons/nethop.png",
+    SMP: "icons/smp.png",
+    Sword: "icons/sword.png",
+    Axe: "icons/axe.png",
+    Mace: "icons/mace.png"
   };
-  return icons[category] || "🎮";
+  return icons[category] || "icons/overall.png";
 }
 
 function getTierIcon(category) {
-  const icons = {
-    "Sword": "🗡",
-    "Axe": "🪓",
-    "Mace": "🔨",
-    "Vanilla": "💎",
-    "Pot": "🧪",
-    "UHC": "❤",
-    "Cart": "🛒",
-    "Overall": "🏆"
-  };
-  return icons[category] || "";
+  return `<img src="${getCategoryIconPath(category)}" class="tier-icon" alt="${category}">`;
 }
 
 function updateUserUI() {
@@ -150,17 +182,25 @@ function updateUserUI() {
   }
 }
 
+function closePlayerModal() {
+  const overlay = document.querySelector(".row-modal-overlay");
+  if (overlay) overlay.remove();
+}
+
 function openPlayerModal(playerData) {
-  const existing = document.querySelector(".row-modal-overlay");
-  if (existing) existing.remove();
+  closePlayerModal();
 
   const categoryMap = {};
   allPlayers
-    .filter(p => p.name === playerData.rawName)
+    .filter(p => p.name && p.name.toLowerCase() === playerData.rawName.toLowerCase())
     .forEach(p => {
       if (!categoryMap[p.category]) categoryMap[p.category] = [];
-      if (Array.isArray(p.tiers)) categoryMap[p.category].push(...p.tiers);
+      if (Array.isArray(p.tiers)) categoryMap[p.category].push(...p.tiers.map(normalizeTier));
     });
+
+  Object.keys(categoryMap).forEach(cat => {
+    categoryMap[cat] = [...new Set(sortTiersBestFirst(categoryMap[cat]))];
+  });
 
   const modalHTML = `
     <div class="row-modal-overlay" id="playerDetailsOverlay">
@@ -175,17 +215,17 @@ function openPlayerModal(playerData) {
 
         <div class="row-modal-tiers">
           <div class="row-modal-category">
-            <h4>🏆 Overall</h4>
+            <h4>${getTierIcon("Overall")} Overall</h4>
             <div class="tier-tags">
-              <span class="tier-tag">🏆 ${escapeHtml(playerData.bestTag || "-")}</span>
+              <span class="tier-tag">${getTierIcon("Overall")} ${escapeHtml(playerData.bestTag || "-")}</span>
             </div>
           </div>
 
           ${Object.keys(categoryMap).map(cat => `
             <div class="row-modal-category">
-              <h4>${getCategoryIcon(cat)} ${escapeHtml(cat)}</h4>
+              <h4><img src="${getCategoryIconPath(cat)}" alt="${cat}"> ${escapeHtml(cat)}</h4>
               <div class="tier-tags">
-                ${[...new Set(categoryMap[cat])].map(t => `
+                ${categoryMap[cat].map(t => `
                   <span class="tier-tag">${getTierIcon(cat)} ${escapeHtml(t)}</span>
                 `).join("")}
               </div>
@@ -193,7 +233,7 @@ function openPlayerModal(playerData) {
           `).join("")}
         </div>
 
-        <button id="closePlayerModalBtn" style="margin-top:20px;background:#2a3355;">Close</button>
+        <button id="closePlayerModalBtn" class="ghost-btn" style="margin-top:20px;">Close</button>
       </div>
     </div>
   `;
@@ -201,14 +241,9 @@ function openPlayerModal(playerData) {
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 
   document.getElementById("closePlayerModalBtn").addEventListener("click", closePlayerModal);
-  document.getElementById("playerDetailsOverlay").addEventListener("click", function(e) {
+  document.getElementById("playerDetailsOverlay").addEventListener("click", function (e) {
     if (e.target.id === "playerDetailsOverlay") closePlayerModal();
   });
-}
-
-function closePlayerModal() {
-  const overlay = document.querySelector(".row-modal-overlay");
-  if (overlay) overlay.remove();
 }
 
 async function loadPlayers() {
@@ -240,12 +275,11 @@ function renderPlayers() {
           region: p.region || "NA",
           bestTag: "-",
           bestScore: 0,
-          note: p.note || "",
-          allTiers: []
+          note: p.note || ""
         };
       }
 
-      const tiers = Array.isArray(p.tiers) ? p.tiers : [];
+      const tiers = Array.isArray(p.tiers) ? p.tiers.map(normalizeTier) : [];
       const best = getBestTier(tiers);
 
       if (best.score > playerMap[key].bestScore) {
@@ -254,8 +288,6 @@ function renderPlayers() {
         playerMap[key].note = p.note || playerMap[key].note;
         playerMap[key].region = p.region || playerMap[key].region;
       }
-
-      playerMap[key].allTiers.push(...tiers);
     });
 
     displayData = Object.values(playerMap)
@@ -265,15 +297,19 @@ function renderPlayers() {
     displayData = allPlayers
       .filter(p => p.category === currentCategory)
       .filter(p => p.name && p.name.toLowerCase().includes(search))
-      .map(p => ({
-        firebaseId: p.id,
-        name: p.name,
-        rawName: p.name,
-        region: p.region || "NA",
-        tiers: Array.isArray(p.tiers) ? p.tiers : [],
-        note: p.note || "",
-        bestTag: getBestTier(Array.isArray(p.tiers) ? p.tiers : []).tag
-      }));
+      .map(p => {
+        const normalizedTiers = Array.isArray(p.tiers) ? p.tiers.map(normalizeTier) : [];
+        return {
+          firebaseId: p.id,
+          name: p.name,
+          rawName: p.name,
+          region: p.region || "NA",
+          tiers: sortTiersBestFirst(normalizedTiers),
+          note: p.note || "",
+          bestTag: getBestTier(normalizedTiers).tag
+        };
+      })
+      .sort((a, b) => getBestTier(b.tiers).score - getBestTier(a.tiers).score);
   }
 
   list.innerHTML = "";
@@ -287,9 +323,7 @@ function renderPlayers() {
     const row = document.createElement("div");
     row.className = "rank-row";
 
-    const shownTiers = currentCategory === "Overall"
-      ? [p.bestTag]
-      : p.tiers;
+    const shownTiers = currentCategory === "Overall" ? [p.bestTag] : p.tiers;
 
     row.innerHTML = `
       <div class="rank-pos">${idx + 1}.</div>
@@ -377,7 +411,10 @@ document.getElementById("playerForm").addEventListener("submit", async e => {
   const nm = document.getElementById("playerName").value.trim();
   const cat = document.getElementById("playerCategory").value;
   const reg = document.getElementById("playerRegion").value;
-  const tiers = document.getElementById("playerTiers").value.split(",").map(s => s.trim()).filter(Boolean);
+  const tiers = document.getElementById("playerTiers").value
+    .split(",")
+    .map(normalizeTier)
+    .filter(Boolean);
   const note = document.getElementById("playerNote").value.trim();
 
   if (!nm || !cat || !reg || !tiers.length) {
@@ -395,6 +432,49 @@ document.getElementById("playerForm").addEventListener("submit", async e => {
 
   e.target.reset();
   loadPlayers();
+});
+
+document.getElementById("removeRankForm").addEventListener("submit", async e => {
+  e.preventDefault();
+
+  if (!isEditor()) {
+    alert("No permission");
+    return;
+  }
+
+  const name = document.getElementById("removePlayerName").value.trim().toLowerCase();
+  const category = document.getElementById("removePlayerCategory").value;
+
+  if (!name || !category) {
+    alert("Fill fields");
+    return;
+  }
+
+  try {
+    const q = query(
+      collection(db, "players"),
+      where("category", "==", category),
+      where("name", "==", document.getElementById("removePlayerName").value.trim())
+    );
+
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      alert("No matching player rank found.");
+      return;
+    }
+
+    for (const playerDoc of snapshot.docs) {
+      await deleteDoc(doc(db, "players", playerDoc.id));
+    }
+
+    document.getElementById("removeRankForm").reset();
+    await loadPlayers();
+    alert("Player rank removed.");
+  } catch (error) {
+    console.error(error);
+    alert("Error removing rank.");
+  }
 });
 
 document.getElementById("searchInput").addEventListener("input", renderPlayers);
